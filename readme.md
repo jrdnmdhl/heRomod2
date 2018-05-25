@@ -1,4 +1,4 @@
-[![Travis-CI Build Status](https://travis-ci.org/jrdnmdhl/heromod2.svg?branch=master)](https://travis-ci.org/jrdnmdhl/heromod2)
+[![Travis-CI Build Status](https://travis-ci.org/jrdnmdhl/heRomod2.svg?branch=master)](https://travis-ci.org/jrdnmdhl/heRomod2)
 
 # heRomod2
 
