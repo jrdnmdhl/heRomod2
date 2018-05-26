@@ -32,7 +32,7 @@ define_parameters_tabular <- function(x) {
   names(formulas) <- x$name
 
   # Convert to lazy dots
-  lazy_params <- as.lazy_dots(formulas)
+  lazy_params <- capture_parameters(formulas)
 
   # Define parameters
   define_parameters_(lazy_params)
@@ -46,4 +46,19 @@ define_parameters_tabular <- function(x) {
 define_parameters_ <- function(.dots) {
   class(.dots) <- append(class(.dots), "parameters")
   sort(.dots)
+}
+
+capture_parameters <- function(formulas) {
+  tryCatch(
+    as.lazy_dots(formulas),
+    error = function(e) {
+      for(i in seq_len(length(formulas))) {
+        this_res <- try(as.lazy(formulas[[i]]))
+        if(inherits(this_res, "try-error")) {
+          error_string <- glue("Parameter '{names(formulas)[i]}' is not a valid R-Expression")
+          stop(error_string, call. = F)
+        }
+      }
+    }
+  )
 }

@@ -21,7 +21,7 @@ evaluate.lazy <- function(x, ns, ...) {
 
   # If an error occurs, send error message
   if ('error' %in% class(res)) {
-    stop(substring(res, 38))
+    stop(substring(res, 35), call. = F)
   }
 
   # Return the result
@@ -43,7 +43,7 @@ evaluate.parameters <- function(x, ns, ...) {
 
     # If an error occurs, send error message
     if ('error' %in% class(res)) {
-      stop(res, call. = F)
+      stop(glue("Error in parameter '{name}', {substring(res, 10)}"), call. = F)
     }
 
     # Determine whether result is a vector or object parameter

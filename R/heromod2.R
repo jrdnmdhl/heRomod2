@@ -2,4 +2,5 @@
 #' @importFrom magrittr %>%
 #' @importFrom purrr walk2
 #' @importFrom lazyeval lazy lazy_dots lazy_eval as.lazy_dots
+#' @importFrom glue glue
 NULL
