@@ -1,6 +1,25 @@
 context("Parameters")
 library(dplyr)
 
+test_that("Defining an evaluating parameters", {
+  params <- define_parameters(
+    x = 1000,
+    y = 34.4,
+    z = x * y,
+    a = cars,
+    b = lm(speed~dist, data = a),
+    c = predict(b, newdata = data.frame(dist = y))
+  )
+  params_ns <- heRomod2:::define_namespace(mtcars)
+  params_eval <- heRomod2::evaluate(params, params_ns)
+  expect_true(all(params_eval$df$x == 1000))
+  expect_true(all(params_eval$df$y == 34.4))
+  expect_true(all(params_eval$df$z == 34400))
+  expect_equal(params_eval$df$c, rep(13.97943, nrow(mtcars)), tolerance = 1e-07)
+  expect_true(class(params_eval$env$a) == "data.frame")
+  expect_true(class(params_eval$env$b) == "lm")
+})
+
 test_that("Defining and evaluating parameters from tabular specification", {
 
   # Sorted and unsorted parameters object work and yield same result
@@ -27,6 +46,26 @@ test_that("Defining and evaluating parameters from tabular specification", {
     as.list(unsorted_params_eval$env)[names(as.list(sorted_params_eval$env))]
   )
 
+  # Missing column 'formula'
+  col1_df <- readxl::read_xlsx(
+    system.file("test_cases", "parameters_tests.xlsx", package = "heRomod2"),
+    "colname1"
+  )
+  expect_error(
+    heRomod2:::define_parameters_tabular(col1_df),
+    "Parameters table must have columns 'name' and 'formula'"
+  )
+
+  # Missing column 'name'
+  col2_df <- readxl::read_xlsx(
+    system.file("test_cases", "parameters_tests.xlsx", package = "heRomod2"),
+    "colname2"
+  )
+  expect_error(
+    heRomod2:::define_parameters_tabular(col2_df),
+    "Parameters table must have columns 'name' and 'formula'"
+  )
+
   # Invalid R-Expression
   invalid_df <- readxl::read_xlsx(
     system.file("test_cases", "parameters_tests.xlsx", package = "heRomod2"),
@@ -34,7 +73,7 @@ test_that("Defining and evaluating parameters from tabular specification", {
   )
   expect_error(
     heRomod2:::define_parameters_tabular(invalid_df),
-    "Parameter 'g' is not a valid R-Expression"
+    "Parameter 'a' is not a valid R-Expression"
   )
 
   # Error in parameter evaluation

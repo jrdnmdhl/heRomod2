@@ -24,7 +24,7 @@ define_parameters_tabular <- function(x) {
 
   # Check column names
   if (!all(c("name", "formula") %in% colnames(x))) {
-    stop("Parameters table must have columns 'name' and 'formula'")
+    stop("Parameters table must have columns 'name' and 'formula'", call. = F)
   }
 
   # Convert to a named character vector
