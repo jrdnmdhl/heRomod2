@@ -91,40 +91,71 @@ bootstrap <- function(x, id = NULL, strata = NULL, weight = NULL) {
 }
 
 #' @export
-resample <- function(x, n, ns, corr = NULL) {
+resample <- function(model, n, segments, corr = NULL) {
+  
+  # Get the sampled parameters and give each a unique
+  # id based on name/strategy/group
+  params_df <- dplyr::filter(
+    model$variables,
+    !is.na(sampling)
+  ) %>%
+    dplyr::mutate(.id = paste0('.', strategy, '.', group, '.', name))
+  
+  n_var <- nrow(params_df)
+  unique_names <- unique(params_df$name)
+  n_var_unique <- length(unique)
 
   # Assume independence if missing correlation matrix
   if (is.null(corr)) {
-    corr <- diag(rep(1, length(x)))
+    corr <- diag(rep(1, n_var))
   }
 
   # Sample uniform random
-  mat_p <- stats::pnorm(
-    rmvn(
-      n = n,
-      mu = rep(0, length(x)),
-      sigma = corr
-    )
-  )
-
-  # Pre-allocate list of results
-  cols <- vector(mode = "list", length = length(x))
-  names(cols) <- names(x)
+  mat_p <- stats::pnorm(mvnfast::rmvn(n = n, mu = rep(0, n_var), sigma = corr))
+  
+  # Prepopulate a list to store simulations
+  cols <- vector(mode = "list", length = n_var + 1)
+  cols[[1]] <- seq_len(n)
+  names(cols) <- c('simulation', params_df$.id)
 
   # Fill list with sampled values
-  for (i in seq_len(length(x))) {
-    x[[i]]$env <- new.env(parent = ns$env)
-    ns_df <- ns$df
-    if (names(x)[i] %in% get_names(ns, "df")) {
-      ns_df$bc <- ns_df[[names(x)[i]]]
-    } else {
-      x[[i]]$env$bc <- x[[i]]$env[[names(x)[i]]]
-    }
-    dist_func <- lazy_eval(x[[i]], data = ns_df[1, ])
-    cols[[i]] <- dist_func(mat_p[ ,i])
+  for (i in seq_len(n_var)) {
+    
+    # Get the namespace for segment
+    seg_ns <- dplyr::filter(
+      segments,
+      is.na(params_df$strategy[i]) |
+        params_df$strategy[i] == '' |
+        params_df$strategy[i] == strategy,
+      is.na(params_df$group[i]) |
+        params_df$group[i] == '' |
+        params_df$group[i] == group
+    )$results[[1]]
+    
+    # Setup the parameter
+    param <- lazyeval::as.lazy(params_df$sampling[i], rlang::env_clone(seg_ns$env))
+    param$env$bc <- seg_ns[params_df$name[i]]
+    
+    # Evaluate and assign
+    dist_func <- lazy_eval(param, data = seg_ns$df)
+    cols[[i+1]] <- dist_func(mat_p[ ,i])
   }
-
-  # Turn into data frame
-  do.call(data_frame, cols)
-
+  
+  # Make a data.frame with results
+  sampling_df <- do.call(data_frame, cols)
+  
+  # Create Segments
+  dplyr::rowwise(segments) %>%
+    dplyr::do({
+      x <- .
+      seg_vars <- params_df %>%
+        dplyr::filter(is_in_segment(., x$strategy, x$group))
+      
+      dplyr::select_(sampling_df, .dots = c('simulation', seg_vars$.id)) %>%
+        magrittr::set_colnames(., c('simulation', seg_vars$name)) %>%
+        dplyr::mutate(strategy = x$strategy, group = x$group) %>%
+        .[,c('simulation', 'strategy', 'group', seg_vars$name)]
+      
+    }) %>%
+    dplyr::ungroup()
 }

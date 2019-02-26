@@ -4,7 +4,7 @@
 \alias{define_namespace}
 \title{Define a Namespace Object}
 \usage{
-define_namespace(df, parent = new.env())
+define_namespace(df, env)
 }
 \arguments{
 \item{df}{A data frame of pre-existing parameter values}

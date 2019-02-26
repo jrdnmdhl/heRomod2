@@ -1,14 +1,19 @@
 Package: heRomod2
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Reproducible Health Economic Modeling
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-Imports: purrr, glue, lazyeval, dplyr, readxl, magrittr
-License: GPL-3
+Authors@R: person("Jordan", "Amdahl", email = "jrdnmdhl@gmail.com",
+  role = c("aut", "cre"))
+Description: An R package for creating and running reproducible and
+  transparent health economic models. Models of various types are
+  creating using a consistent tabular structure which defines features
+  of the model such as the strategies being compared and the health
+  states between which patients transit.
+Imports: purrr, glue, lazyeval, dplyr, readxl, magrittr,purrrlyr,
+  tidyr, furrr, stringr, DT, readr, tibble,mvnfast, crayon, openxlsx,
+  knitr, rmarkdown, kableExtra, rlang
+License: AGPL-3
 Encoding: UTF-8
 LazyData: true
 Suggests: testthat
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1

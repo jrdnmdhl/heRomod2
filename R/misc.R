@@ -1,67 +1,88 @@
-#' Sort Model Parameters
-#'
-#' Sorts a parameters object in order to solve issues
-#' of dependency-resolution and identify any circular
-#' references.
-#'
-#' @param x The parameters object to be sorted
-#' @param ... Unused parameters to match sort call
-#' signature
-#'
-#' @keyword internal
-sort.parameters <- function(x, ...) {
 
-  # Extract parameter names
-  par_names <- names(x)
 
-  # Extract the names referenced in each parameter's
-  # formula
-  var_list <- purrr::map(x, function(y) {
-    vars <- all.vars(y$expr)
-    vars[vars %in% par_names]
-  })
+#' @export
+read_workbook <- function(path) {
+  sheet_names <- excel_sheets(path)
+  names(sheet_names) <- sheet_names
+  lapply(sheet_names, function(x) read_excel(path, sheet = x))
+}
 
-  # Define the lists of ordered and unordered parameters
-  ordered <- c()
-  unordered <- var_list
+define_object <- function(..., class) {
+  structure(list(...), class = class)
+}
 
-  # While we still have parameters in the unordered list...
-  while(length(unordered) > 0) {
+is_in_segment <- function(d, strat, grp, include_globals = T) {
+  is_my_strat <- d$strategy == strat
+  is_my_group <- d$group == grp
+  not_strat_spec <- (is.na(d$strategy) | d$strategy == '') & include_globals
+  not_group_spec <- (is.na(d$group) | d$group == '') & include_globals
+  
+  (is_my_strat | not_strat_spec) & (is_my_group | not_group_spec)
+}
 
-    # Define a vector which will hold the indices of each
-    # parameter to be moved to the ordered list
-    to_remove <- c()
-
-    # Loop through each unordered parameter
-    for(i in seq_len(length(unordered))) {
-
-      # If all the parameters its formula references
-      if(all(unordered[[i]] %in% ordered)) {
-
-        # Append it to the list of ordered parameters
-        ordered <- c(ordered, names(unordered)[i])
-
-        # and mark it  for remval
-        to_remove <- c(to_remove, i)
-      }
-    }
-
-    if(length(to_remove) == 0) {
-      # If we didn't find anything to move to the ordered list,
-      # throw a circular reference error
-      stop('Circular reference in parameters', call. = F)
-    } else {
-      # Otherwise, remove from the unordered list the parameters
-      # that were appended to the ordered list
-      unordered <- unordered[-to_remove]
-    }
+read_in_tables <- function(tables, env, log) {
+  if (length(tables) > 0) {
+    log_print_section_break(log)
+    log_print_heading('Reading in Tabular Data', level = 2, log = log)
   }
+  for (name in names(tables)) {
+    assign(name, tables[[name]], envir = env)
+    log_print_heading(name, level = 3, log = log)
+    log_print_table(dplyr::as_data_frame(tables[[name]]), log = log)
+  }
+}
 
-  # Sort the parameters list according to the new order and
-  # apply its original class
-  res <- x[ordered]
-  class(res) <- class(x)
+run_scripts <- function(scripts, env, log) {
+  if (length(scripts) > 0) {
+    log_print_section_break(log)
+    log_print_heading('Running R Scripts', level = 2, log = log)
+  }
+  for (name in names(scripts)) {
+    log_print_heading('Running: ' %+% name, level = 3, log = log)
+    eval(parse(text = scripts[[name]]), envir = env)
+  }
+}
 
-  res
+get_cycle_length_days <- function(settings) {
+  days_per_cl_unit <- days_per_unit(settings$value[settings$setting == cl_unit_code][1])
+  cl <- as.numeric(settings$value[settings$setting == cl_code][1])
+  cl * days_per_cl_unit
+}
 
+get_segments <- function(model) {
+  
+  if (nrow(model$groups) == 0) {
+    model$groups <- tibble::tibble(
+      name = 'all',
+      display_name = 'All Patients',
+      description = 'All Patients',
+      weight = 1,
+      enabled = 1
+    )
+  }
+  
+  expand.grid(
+    group = groups$name,
+    strategy =  model$strategies$name,
+    stringsAsFactors = F
+  )
+}
+
+get_n_cycles <- function(settings) {
+  days_per_tf_unit <- days_per_unit(settings$value[settings$setting == tf_unit_code][1])
+  days_per_cl_unit <- days_per_unit(settings$value[settings$setting == cl_unit_code][1])
+  tf <- as.numeric(settings$value[settings$setting == tf_code][1])
+  cl <- as.numeric(settings$value[settings$setting == cl_code][1])
+  
+  floor((tf * days_per_cl_unit) / (cl * days_per_cl_unit))
+}
+
+days_per_unit <- function(unit) {
+  switch(
+    unit,
+    "Days" = 1,
+    "Weeks" = 7,
+    "Months" = 365/12,
+    "Years" = 365
+  )
 }

@@ -6,19 +6,19 @@
 \alias{define_parameters_}
 \title{Define Model Parameters}
 \usage{
-define_parameters(...)
+define_parameters(df)
 
 define_parameters_tabular(x)
 
 define_parameters_(.dots)
 }
 \arguments{
-\item{...}{A set of named parameters}
-
 \item{x}{A data frame with columns `name` and `formula`}
 
 \item{.dots}{An object of type `lazy_dots` representing
 the unevaluated parameters.}
+
+\item{...}{A set of named parameters}
 }
 \description{
 Define a set of named R-expressions representing
