@@ -33,4 +33,18 @@ test_that("Evaluate a Simple Model", {
  ) 
   res <- evaluate_model(model)
   
+  expect_equal(res$segments$eval_vars[[1]]['x'], 33)
+  expect_equal(res$segments$eval_vars[[1]]['y'], 32)
+  expect_equal(res$segments$eval_vars[[1]]['z'], 30)
+  
+  res2 <- evaluate_model(
+    model,
+    newdata = data.frame(strategy = 'strat1', group = 'group_a', h = 1)
+  )
+  
+  expect_equal(res2$segments$eval_vars[[1]]['x'], 33)
+  expect_equal(res2$segments$eval_vars[[1]]['y'], 32)
+  expect_equal(res2$segments$eval_vars[[1]]['z'], 30)
+  
+  
 })
