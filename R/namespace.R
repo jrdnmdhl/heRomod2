@@ -66,15 +66,6 @@ clone_namespace <- function(x) {
   new
 }
 
-subset_namespace <- function(x, names) {
-  copy <- clone_namespace(x)
-  env_names <- get_names(copy, type = "env")
-  df_names <- get_names(copy, type = "df")
-  rm(list = intersect(env_names, names), envir = copy$env)
-  copy$df <- copy$df[intersect(df_names, names)]
-  copy
-}
-
 #' @export
 merge.namespace <- function(old, new) {
   copy <- clone_namespace(old)
