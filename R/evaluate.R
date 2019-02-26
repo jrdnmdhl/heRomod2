@@ -57,7 +57,7 @@ evaluate_model <- function(model, ...) {
     future_map(function(segment) {
       evaluate_model_segment(segment, model, env = model_env, ...)
     }) %>%
-    rbind_list()
+    bind_rows()
   
   res
 }
@@ -108,7 +108,7 @@ evaluate_model_segment <- function(segment, model, env, ...) {
     sort()
   
   # Evaluate the Parameters
-  eval_vars <- evaluate_variable_list(uneval_vars, ns)
+  eval_vars <- evaluate_variable_list(uneval_vars, ns, log = dots$log)
   
   # Return segment row
   segment$uneval_vars <- list(uneval_vars)

@@ -1,5 +1,4 @@
 
-
 get_log_level <- function(log) {
   if (is.null(log)) {
     log <- list(
@@ -12,6 +11,7 @@ get_log_level <- function(log) {
 }
 
 log_print_table <- function(tbl, log) {
+  log <- get_log_level(log)
   if (log$level > 0) {
     switch(
       log$type,
@@ -31,6 +31,7 @@ log_print_table <- function(tbl, log) {
   }
 }
 log_print_section_break <- function(log) {
+  log <- get_log_level(log)
   if (log$level > 0) {
     switch(
       log$type,
@@ -40,6 +41,7 @@ log_print_section_break <- function(log) {
   }
 }
 log_print_heading <- function(txt, level, log) {
+  log <- get_log_level(log)
   if (log$level > 0) {
     switch(
       log$type,
