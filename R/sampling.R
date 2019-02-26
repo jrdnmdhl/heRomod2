@@ -122,7 +122,7 @@ resample <- function(model, n, segments, corr = NULL) {
   for (i in seq_len(n_var)) {
     
     # Get the namespace for segment
-    seg_ns <- dplyr::filter(
+    seg_ns <- filter(
       segments,
       is.na(params_df$strategy[i]) |
         params_df$strategy[i] == '' |
@@ -130,7 +130,7 @@ resample <- function(model, n, segments, corr = NULL) {
       is.na(params_df$group[i]) |
         params_df$group[i] == '' |
         params_df$group[i] == group
-    )$results[[1]]
+    )$eval_vars[[1]]
     
     # Setup the parameter
     param <- lazyeval::as.lazy(params_df$sampling[i], rlang::env_clone(seg_ns$env))
@@ -138,7 +138,7 @@ resample <- function(model, n, segments, corr = NULL) {
     
     # Evaluate and assign
     dist_func <- lazy_eval(param, data = seg_ns$df)
-    cols[[i+1]] <- dist_func(mat_p[ ,i])
+    cols[[i + 1]] <- dist_func(mat_p[ ,i])
   }
   
   # Make a data.frame with results

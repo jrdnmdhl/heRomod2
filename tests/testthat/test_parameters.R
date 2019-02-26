@@ -1,100 +1,56 @@
 context("Parameters")
+library(testthat)
 library(dplyr)
+library(tibble)
 
-test_that("Defining an evaluating parameters", {
-  params <- define_parameters(
-    x = 1000,
-    y = 34.4,
-    z = x * y,
-    a = cars,
-    b = lm(speed~dist, data = a),
-    c = predict(b, newdata = data.frame(dist = y))
+test_that("Evaluating Simple Variables", {
+  vars <- tribble(
+    ~name, ~formula,
+    'x'  , 'y + 1',
+    'y'  , 'z + 2',
+    'z'  , '30'
   )
-  params_ns <- heRomod2:::define_namespace(mtcars)
-  params_eval <- heRomod2::evaluate(params, params_ns)
-  expect_true(all(params_eval$df$x == 1000))
-  expect_true(all(params_eval$df$y == 34.4))
-  expect_true(all(params_eval$df$z == 34400))
-  expect_equal(params_eval$df$c, rep(13.97943, nrow(mtcars)), tolerance = 1e-07)
-  expect_true(class(params_eval$env$a) == "data.frame")
-  expect_true(class(params_eval$env$b) == "lm")
+  var_list <- heRomod2:::define_variable_list(vars) %>%
+    sort()
+  ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3)), new.env())
+  var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
+  
+  expect_equal(var_res['z'], 30)
+  expect_equal(var_res['y'], 32)
+  expect_equal(var_res['x'], 33)
+  
 })
 
-test_that("Defining and evaluating parameters from tabular specification", {
+test_that("Evaluating Object Variables", {
+  vars <- tribble(
+    ~name, ~formula,
+    'x'  , 'y + 1',
+    'y'  , 'z + 2',
+    'z'  , '30',
+    'a'  , 'mtcars',
+    'b'  , 'lm(mpg~disp, data = a)',
+    'c'  , 'predict(b, newdata = data.frame(disp = x))'
+  )
+  var_list <- heRomod2:::define_variable_list(vars) %>%
+    sort()
+  ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3)), new.env())
+  var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
+  
+  expect_equal(var_res['z'], 30)
+  expect_equal(var_res['y'], 32)
+  expect_equal(var_res['x'], 33)
+  expect_equal(var_res['a'], mtcars)
+  expect_equal(unname(var_res['c']), 28.23976, tolerance = 1e-5)
+})
 
-  # Sorted and unsorted parameters object work and yield same result
-  sorted_df <- readxl::read_xlsx(
-    system.file("test_cases", "parameters_tests.xlsx", package = "heRomod2"),
-    "sorted"
-  )
-  sorted_params <- heRomod2:::define_parameters_tabular(sorted_df)
-  sorted_ns <- heRomod2:::define_namespace(mtcars)
-  sorted_params_eval <- heRomod2::evaluate(sorted_params, sorted_ns)
-  unsorted_df <- readxl::read_xlsx(
-    system.file("test_cases", "parameters_tests.xlsx", package = "heRomod2"),
-    "unsorted"
-  )
-  unsorted_params <- heRomod2:::define_parameters_tabular(unsorted_df)
-  unsorted_ns <- heRomod2:::define_namespace(mtcars)
-  unsorted_params_eval <- heRomod2::evaluate(unsorted_params, unsorted_ns)
-  expect_equal(
-    sorted_params_eval$df,
-    unsorted_params_eval$df[colnames(sorted_params_eval$df)]
-  )
-  expect_equal(
-    as.list(sorted_params_eval$env),
-    as.list(unsorted_params_eval$env)[names(as.list(sorted_params_eval$env))]
-  )
 
-  # Missing column 'formula'
-  col1_df <- readxl::read_xlsx(
-    system.file("test_cases", "parameters_tests.xlsx", package = "heRomod2"),
-    "colname1"
+test_that("Circular Reference", {
+  vars <- tribble(
+    ~name, ~formula,
+    'x'  , 'y + 1',
+    'y'  , 'z + 2',
+    'z'  , 'x'
   )
-  expect_error(
-    heRomod2:::define_parameters_tabular(col1_df),
-    "Parameters table must have columns 'name' and 'formula'"
-  )
-
-  # Missing column 'name'
-  col2_df <- readxl::read_xlsx(
-    system.file("test_cases", "parameters_tests.xlsx", package = "heRomod2"),
-    "colname2"
-  )
-  expect_error(
-    heRomod2:::define_parameters_tabular(col2_df),
-    "Parameters table must have columns 'name' and 'formula'"
-  )
-
-  # Invalid R-Expression
-  invalid_df <- readxl::read_xlsx(
-    system.file("test_cases", "parameters_tests.xlsx", package = "heRomod2"),
-    "invalid"
-  )
-  expect_error(
-    heRomod2:::define_parameters_tabular(invalid_df),
-    "Parameter 'a' is not a valid R-Expression"
-  )
-
-  # Error in parameter evaluation
-  error_df <- readxl::read_xlsx(
-    system.file("test_cases", "parameters_tests.xlsx", package = "heRomod2"),
-    "error"
-  )
-  error_params <- heRomod2:::define_parameters_tabular(error_df)
-  error_ns <- heRomod2:::define_namespace(mtcars)
-  expect_error(
-    heRomod2::evaluate(error_params, error_ns),
-    "Error in parameter 'a', object 'z' not found"
-  )
-
-  # Detect circular references
-  circular_df <- readxl::read_xlsx(
-    system.file("test_cases", "parameters_tests.xlsx", package = "heRomod2"),
-    "circular"
-  )
-  expect_error(
-    heRomod2:::define_parameters_tabular(circular_df),
-    "Circular reference in parameters"
-  )
+  vars <- heRomod2:::define_variable_list(vars)
+  expect_error(sort(vars), 'Circular')
 })

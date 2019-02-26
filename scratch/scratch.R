@@ -12,7 +12,7 @@ model$scripts <- list.files('~/Downloads/heRomod2_test/scripts') %>%
 class(model) <- "heRoModel"
 
 #+ results='asis'
-res <- evaluate(model, log = list(level=0,type='console'))
+res <- evaluate_model(model, log = list(level = 0,type = 'console'))
 
 # sampl_list <- lazyeval::as.lazy_dots(model$variables$sampling) %>%
 #   purrr::set_names(model$variables$name) %>%
@@ -20,7 +20,7 @@ res <- evaluate(model, log = list(level=0,type='console'))
 
 hmm <- heRomod2::resample(model, 10, res$segments)
 future::plan(future::multiprocess)
-res2 <- evaluate(model, log = list(level=0,type='console', parallel_mode = 'parallel'), newdata = hmm)
+res2 <- evaluate_model(model, log = list(level=0,type='console', parallel_mode = 'parallel'), newdata = hmm)
 
 
 

@@ -1,64 +1,52 @@
-#' Define Model Parameters
+#' Capture a Variable
 #'
-#' Define a set of named R-expressions representing
-#' model parameters.
+#' Takes a string representing an R-expression and turns it into a heRovar
+#' object. If the resulting R-expression is invalid, it will be replaced
+#' with an expression that evaluates to an error string.
 #'
-#' @param ... A set of named parameters
-#'
-#' @rdname define_parameters
-#' @export
-define_parameters <- function(...) {
+#' @param text An atomic character vector containing an R-expression.
+#' @return A heRovar object representing the given R-expression.
+#' 
+#' @keywords internal
+define_variable <- function(string) {
 
-  # Convert to lazy dots
-  lazy_params <- lazyeval::lazy_dots(...)
+  # Try to capture the expression
+  tryExpr <- try(
+    as.lazy(string),
+    silent = T
+  )
 
-  # Define parameterss
-  define_parameters_(lazy_params)
-}
-
-#' @param x A data frame with columns `name` and `formula`
-#'
-#' @rdname define_parameters
-#' @export
-define_parameters_tabular <- function(x) {
-
-  # Check column names
-  if (!all(c("name", "formula") %in% colnames(x))) {
-    stop("Parameters table must have columns 'name' and 'formula'", call. = F)
+  # Build data for heRovar object
+  if (inherits(tryExpr, "try-error")) {
+    res_list <- list(
+      text = string,
+      lazy = as.lazy('"#ERR: Invalid Expression!"'),
+      err = tryExpr,
+      vars = ''
+    )
+  } else {
+    res_list <- list(
+      text = string,
+      lazy = tryExpr,
+      vars = all.vars(tryExpr$expr, functions = T)
+    )
   }
 
-  # Convert to a named character vector
-  formulas <- as.character(x$formula)
-  names(formulas) <- x$name
-
-  # Convert to lazy dots
-  lazy_params <- capture_parameters(formulas)
-
-  # Define parameters
-  define_parameters_(lazy_params)
+  # Return heRovar object
+  as.heRovar(res_list)
 }
 
-#' @param .dots An object of type `lazy_dots` representing
-#' the unevaluated parameters.
+#' Capture a List of Variables
 #'
-#' @rdname define_parameters
-#' @keyword internal
-define_parameters_ <- function(.dots) {
-  class(.dots) <- append(class(.dots), "parameters")
-  sort(.dots)
-}
-
-capture_parameters <- function(formulas) {
-  tryCatch(
-    as.lazy_dots(formulas),
-    error = function(e) {
-      for(i in seq_len(length(formulas))) {
-        this_res <- try(as.lazy(formulas[[i]]))
-        if(inherits(this_res, "try-error")) {
-          error_string <- glue("Parameter '{names(formulas)[i]}' is not a valid R-Expression")
-          stop(error_string, call. = F)
-        }
-      }
-    }
-  )
+#' Takes a data.frame representing a set of heRo variables and converts it to
+#' a heRovar_list object.
+#'
+#' @param df A data.frame with columns for `name` and `formula`.
+#' @return A heRovar_list object representing the given variables.
+#' 
+#' @keywords internal
+define_variable_list <- function(df) {
+  params <- lapply(df$formula, define_variable)
+  names(params) <- df$name
+  as.heRovar_list(params)
 }

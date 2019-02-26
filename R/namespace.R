@@ -274,7 +274,7 @@ update_segment_ns <- function(x, newdata) {
   
 }
 
-
+#' @export
 `[.namespace` <- function(x, i, ...) {
   df_names <- get_names(x, 'df')
   if (i %in% df_names) return(x$df[[i]])
