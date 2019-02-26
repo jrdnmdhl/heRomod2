@@ -1,11 +1,7 @@
 #' @import dplyr
 #' @import furrr
 #' @import purrr
-#' @importFrom plyr rbind.fill ldply dlply ddply llply l_ply
-#' @importFrom purrrlyr by_slice
 #' @importFrom lazyeval lazy lazy_dots lazy_eval as.lazy_dots as.lazy
-#' @importFrom glue glue
-#' @importFrom readxl read_excel excel_sheets
 NULL
 
 

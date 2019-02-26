@@ -54,7 +54,7 @@ evaluate_model <- function(model, ...) {
   res$segments <- segments %>%
     rowwise() %>%
     group_split() %>%
-    map(function(segment) {
+    future_map(function(segment) {
       evaluate_model_segment(segment, model, env = model_env, ...)
     }) %>%
     rbind_list()

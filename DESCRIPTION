@@ -9,9 +9,9 @@ Description: An R package for creating and running reproducible and
   creating using a consistent tabular structure which defines features
   of the model such as the strategies being compared and the health
   states between which patients transit.
-Imports: purrr, glue, lazyeval, dplyr, readxl, magrittr,purrrlyr,
-  tidyr, furrr, stringr, DT, readr, tibble,mvnfast, crayon, openxlsx,
-  knitr, rmarkdown, kableExtra, rlang
+Imports: glue, lazyeval, dplyr, magrittr,
+  tidyr, furrr, stringr, DT, readr, tibble, mvnfast, crayon, openxlsx,
+  knitr, rmarkdown, kableExtra, rlang, purrr
 License: AGPL-3
 Encoding: UTF-8
 LazyData: true

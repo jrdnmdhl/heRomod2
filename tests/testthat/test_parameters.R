@@ -1,6 +1,4 @@
 context("Parameters")
-library(testthat)
-library(dplyr)
 library(tibble)
 
 test_that("Evaluating Simple Variables", {
