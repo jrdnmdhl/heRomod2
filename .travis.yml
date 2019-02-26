@@ -8,6 +8,7 @@ r_packages:
 after_success:
   - Rscript -e 'library(covr); codecov()'
 install:
+- R -e 'install.packages("devtools", repos = "http://cran.rstudio.com")'
 - R -e 'devtools::install_deps(dep = T)'
 script:
 - travis_wait R CMD build .
