@@ -1,6 +1,7 @@
 #' @import dplyr
 #' @import furrr
 #' @import purrr
+#' @import openxlsx
 #' @importFrom lazyeval lazy lazy_dots lazy_eval as.lazy_dots as.lazy
 NULL
 

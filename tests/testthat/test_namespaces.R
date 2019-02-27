@@ -49,7 +49,31 @@ test_that("Getting Names", {
   
 })
 
-test_that("Cloning & Merging", {
+test_that("Cloning", {
+  
+  # Evaluate some parameters to create a populated namespace
+  vars <- tribble(
+    ~name, ~formula,
+    'x'  , 'y + 1',
+    'y'  , 'z + 2',
+    'z'  , '30',
+    'a'  , 'mtcars',
+    'b'  , 'lm(mpg~disp, data = a)',
+    'c'  , 'predict(b, newdata = data.frame(disp = x))',
+    'i'  , 'model_time + c'
+  )
+  var_list <- heRomod2:::define_variable_list(vars) %>%
+    sort()
+  ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3)), new.env())
+  var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
+  clone <- clone_namespace(var_res)
+  
+  expect_equal(var_res$df, clone$df)
+  expect_equal(as.list(var_res$env), as.list(clone$env))
+  
+})
+
+test_that("Export", {
   
   # Evaluate some parameters to create a populated namespace
   vars <- tribble(
@@ -67,19 +91,16 @@ test_that("Cloning & Merging", {
   ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3)), new.env())
   var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
   
-  vars2 <- tribble(
-    ~name,   ~formula,
-    'blah1', '100',
-    'blah2', '1000'
+  exported <- export(var_res)
+  
+  expect_equal(
+    paste(capture.output(var_res['a'], split = F), collapse = "\n"),
+    exported$print[exported$name == 'a']
   )
-  var_list2 <- heRomod2:::define_variable_list(vars2) %>%
-    sort()
-  ns2 <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3)), new.env())
-  var_res2 <- heRomod2:::evaluate_variable_list(var_list2, ns)
   
-  merged_ns <- merge(var_res, var_res2)
-  
-  all_names_merge <- heRomod2:::get_names(merged_ns, type = 'all', keywords = F)
-  expect_equal(symdiff(all_names_merge, c(vars$name, vars2$name)), empty)
+  expect_equal(
+    paste(capture.output(summary(var_res['b'])), collapse = "\n"),
+    exported$summary[exported$name == 'b']
+  )
   
 })

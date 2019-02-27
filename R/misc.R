@@ -2,9 +2,9 @@
 
 #' @export
 read_workbook <- function(path) {
-  sheet_names <- excel_sheets(path)
+  sheet_names <- getSheetNames(path)
   names(sheet_names) <- sheet_names
-  lapply(sheet_names, function(x) read_excel(path, sheet = x))
+  lapply(sheet_names, function(x) readWorkbook(path, sheet = x))
 }
 
 define_object <- function(..., class) {
