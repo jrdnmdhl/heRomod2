@@ -29,10 +29,13 @@ test_that("Logging a Simple Model", {
       'group_a', '0.5',
       'group_b', '0.3',
       'group_c', '0.2'
+    ),
+    tables = list(
+      mtcars = mtcars
     )
-  ) 
+  )
   testthat::expect_output(
-    evaluate_model(model, log = list(level = 1, type = 'console')),
+    evaluate_model(model, log = list(level = 2, type = 'console')),
     'Evaluating strategy'
   )
   

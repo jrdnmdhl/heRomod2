@@ -15,20 +15,7 @@ log_print_table <- function(tbl, log) {
   if (log$level > 0) {
     switch(
       log$type,
-      print(dplyr::as_data_frame(tbl), n = 10),
-      html = {
-        print(
-          kableExtra::scroll_box(
-            kableExtra::kable_styling(
-              knitr::kable(tbl),
-              bootstrap_options = c("striped", "hover", "condensed"),
-              font_size = 10
-            ),
-            extra_css = "max-height: 250px; height: auto; overflow: scroll !important;"
-          )
-        )
-        cat('\n\n')
-      }
+      print(dplyr::as_data_frame(tbl), n = 10)
     )
   }
 }
@@ -37,7 +24,6 @@ log_print_section_break <- function(log) {
   if (log$level > 0) {
     switch(
       log$type,
-      html = cat('***\n'),
       cat('\n\n\n______________________________\n\n\n')
     )
   }
@@ -47,12 +33,6 @@ log_print_heading <- function(txt, level, log) {
   if (log$level > 0) {
     switch(
       log$type,
-      html = switch(
-        as.character(level),
-        '1' = cat(paste0('### ', txt, ': \n\n')),
-        '2' = cat(paste0('#### ', txt, ': \n\n')),
-        '3' = cat(paste0('###### ', txt, ': \n\n'))
-      ),
       switch(
         as.character(level),
         '1' = cat(crayon::underline(crayon::bold(paste0(txt, ': \n\n')))),

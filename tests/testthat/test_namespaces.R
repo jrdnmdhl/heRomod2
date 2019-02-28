@@ -22,7 +22,7 @@ test_that("Getting Names", {
   )
   var_list <- heRomod2:::define_variable_list(vars) %>%
     sort()
-  ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3)), new.env())
+  ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3), state_time = c(1,1,1)), new.env())
   var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
   
   # Get names for all variables
@@ -31,7 +31,7 @@ test_that("Getting Names", {
   
   # Include keywords
   all_names_kw <- heRomod2:::get_names(var_res, type = 'all', keywords = T)
-  expect_equal(symdiff(all_names_kw, c('model_time', vars$name)), empty)
+  expect_equal(symdiff(all_names_kw, c('model_time', 'state_time', vars$name)), empty)
   
   # Get names for all df vars
   df_names <- heRomod2:::get_names(var_res, type = 'df', keywords = F)
@@ -88,7 +88,7 @@ test_that("Summary", {
   )
   var_list <- heRomod2:::define_variable_list(vars) %>%
     sort()
-  ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3)), new.env())
+  ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3), state_time = c(1,1,1)), new.env())
   var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
   
   exported <- summary(var_res)

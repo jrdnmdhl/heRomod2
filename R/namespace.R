@@ -78,14 +78,14 @@ summary.namespace <- function(object, ...) {
 
   # Extract names from namespaces
   env_names <- get_names(object, "env", keywords = F)
-
-  if (ncol(object$df) > 2) {
-    res_df <- object$df %>%
-      tidyr::gather(
-        .data$name,
-        .data$value,
-        -.data$model_time,
-        -.data$state_time
+  df_names <- get_names(object, "df", keywords = F)
+  
+  if (length(df_names) > 0) {
+    res_df <- tidyr::gather_(
+        object$df,
+        'name',
+        'value',
+        gather_cols = df_names
       ) %>%
       dplyr::mutate(
         print = NA,
