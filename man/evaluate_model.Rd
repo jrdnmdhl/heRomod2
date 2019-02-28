@@ -8,6 +8,8 @@ evaluate_model(model, ...)
 }
 \arguments{
 \item{model}{A heRo_model object.}
+
+\item{...}{additional arguments.}
 }
 \value{
 A list containing the results of the model.

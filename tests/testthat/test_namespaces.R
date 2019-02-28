@@ -73,7 +73,7 @@ test_that("Cloning", {
   
 })
 
-test_that("Export", {
+test_that("Summary", {
   
   # Evaluate some parameters to create a populated namespace
   vars <- tribble(
@@ -91,7 +91,7 @@ test_that("Export", {
   ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3)), new.env())
   var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
   
-  exported <- export(var_res)
+  exported <- summary(var_res)
   
   expect_equal(
     paste(capture.output(var_res['a'], split = F), collapse = "\n"),

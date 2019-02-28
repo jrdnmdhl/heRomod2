@@ -6,8 +6,7 @@
 #' with an environment for storing non-vector parameters.
 #'
 #' @param df A data frame of pre-existing parameter values
-#' @param parent An optional environment to serve as the
-#' parent to the namespace environment
+#' @param env An environment of pre-existing values
 #'
 #' @export
 define_namespace <- function(df, env) {
@@ -45,21 +44,29 @@ create_namespace <- function(n_cycles, n_tunnels, cycle_length, env) {
   define_namespace(
     df = tibble::tibble(
       model_time = rep(seq_len(n_cycles), times = n_tunnels),
-      model_day = model_time * cycle_length,
-      model_week = model_day / days_per_unit('Weeks'),
-      model_month = model_day / days_per_unit('Months'),
-      model_year = model_day / days_per_unit('Years'),
+      model_day = .data$model_time * cycle_length,
+      model_week = .data$model_day / days_per_unit('Weeks'),
+      model_month = .data$model_day / days_per_unit('Months'),
+      model_year = .data$model_day / days_per_unit('Years'),
       state_time = rep(seq_len(n_tunnels), each = n_cycles),
-      state_day = state_time * cycle_length,
-      state_week = state_day / days_per_unit('Weeks'),
-      state_month = state_day / days_per_unit('Months'),
-      state_year = state_day / days_per_unit('Years')
+      state_day = .data$state_time * cycle_length,
+      state_week = .data$state_day / days_per_unit('Weeks'),
+      state_month = .data$state_day / days_per_unit('Months'),
+      state_year = .data$state_day / days_per_unit('Years')
     ),
     env = env
   )
 }
 
-#' @export
+#' Clone a Namespace
+#' 
+#' Clones a namespace object.
+#' 
+#' @param x The namespace to be cloned.
+#' 
+#' @return An identical copy of the namespace.
+#' 
+#' @keywords internal
 clone_namespace <- function(x) {
   new <- x
   new$env <- rlang::env_clone(x$env)
@@ -67,28 +74,31 @@ clone_namespace <- function(x) {
 }
 
 #' @export
-export.namespace <- function(x, ...) {
+summary.namespace <- function(object, ...) {
 
   # Extract names from namespaces
-  env_names <- get_names(x, "env", keywords = F)
-  df_names <- get_names(x, "df", keywords = F)
-  all_names <- get_names(x, "all", keywords = F)
+  env_names <- get_names(object, "env", keywords = F)
 
-  n_vars <- length(all_names)
-
-  if (ncol(x$df) > 2) {
-    res_df <- x$df %>%
+  if (ncol(object$df) > 2) {
+    res_df <- object$df %>%
       tidyr::gather(
-        name,
-        value,
-        -model_time,
-        -state_time
+        .data$name,
+        .data$value,
+        -.data$model_time,
+        -.data$state_time
       ) %>%
       dplyr::mutate(
         print = NA,
         summary = NA
       ) %>%
-      select(name, model_time, state_time, value, print, summary)
+      select(
+        name,
+        .data$model_time,
+        .data$state_time,
+        .data$value,
+        .data$print,
+        .data$summary
+      )
   } else {
     res_df <- data.frame()
   }
@@ -102,24 +112,43 @@ export.namespace <- function(x, ...) {
   )
   for (i in seq_len(length(env_names))) {
     name <- env_names[i]
-    export_res <- export(get(name, envir = x$env))
+    export_res <- export(get(name, envir = object$env))
     res_env$print[i] <- export_res$print
     res_env$summary[i] <- export_res$summary
   }
 
-  res_env <- select(res_env, name, model_time, state_time, value, print, summary)
+  res_env <- select(
+    res_env,
+    .data$name,
+    .data$model_time,
+    .data$state_time,
+    .data$value,
+    .data$print,
+    .data$summary
+  )
   res <- rbind(res_df, res_env)
   res
 }
 
-
+#' Export a Variable
+#' 
+#' Generates output representing the evaluated value for a given variable. This
+#' is done by outputing its class, and the result of its print and summary
+#' methods.
+#' 
+#' @param x The object being exported.
+#' 
+#' @return a list containing the class of the result, and the output of its
+#' print and summary methods.
+#' 
 #' @export
-export <- function(x, ...) {
+export <- function(x) {
   UseMethod("export", x)
 }
 
+
 #' @export
-export.default <- function(x, ...) {
+export.default <- function(x) {
   res <- list()
   res$class <- tryCatch({
     class(x)

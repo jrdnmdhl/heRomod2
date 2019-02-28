@@ -3,6 +3,8 @@
 #' Takes a heRovar object and converts it to its character representation.
 #'
 #' @param x A heRovar object.
+#' @param ... additional unused arguments.
+#' 
 #' @return An atomic character vector representing the R-expression.
 #' 
 #' @export

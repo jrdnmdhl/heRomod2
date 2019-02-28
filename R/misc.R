@@ -1,5 +1,13 @@
 
-
+#' Read an Excel Workbook
+#' 
+#' Takes the path of an excel workbook and reads it in as a named list of
+#' data frames.
+#' 
+#' @param path the path to the workbook.
+#' 
+#' @return a named list of data.frames
+#' 
 #' @export
 read_workbook <- function(path) {
   sheet_names <- getSheetNames(path)
@@ -38,7 +46,7 @@ run_scripts <- function(scripts, env, log) {
     log_print_heading('Running R Scripts', level = 2, log = log)
   }
   for (name in names(scripts)) {
-    log_print_heading('Running: ' %+% name, level = 3, log = log)
+    log_print_heading(paste0('Running: ', name), level = 3, log = log)
     eval(parse(text = scripts[[name]]), envir = env)
   }
 }
@@ -74,7 +82,7 @@ get_n_cycles <- function(settings) {
   tf <- as.numeric(settings$value[settings$setting == tf_code][1])
   cl <- as.numeric(settings$value[settings$setting == cl_code][1])
   
-  floor((tf * days_per_cl_unit) / (cl * days_per_cl_unit))
+  floor((tf * days_per_tf_unit) / (cl * days_per_cl_unit))
 }
 
 days_per_unit <- function(unit) {
@@ -114,17 +122,17 @@ sort.heRovar_list <- function(x, ...) {
   unordered <- var_list
   
   # While we still have parameters in the unordered list...
-  while(length(unordered) > 0) {
+  while (length(unordered) > 0) {
     
     # Define a vector which will hold the indices of each
     # parameter to be moved to the ordered list
     to_remove <- c()
     
     # Loop through each unordered parameter
-    for(i in seq_len(length(unordered))) {
+    for (i in seq_len(length(unordered))) {
       
       # If all the parameters its formula references
-      if(all(unordered[[i]] %in% ordered)) {
+      if (all(unordered[[i]] %in% ordered)) {
         
         # Append it to the list of ordered parameters
         ordered <- c(ordered, names(unordered)[i])
@@ -143,7 +151,7 @@ sort.heRovar_list <- function(x, ...) {
       }
     }
     
-    if(length(to_remove) == 0) {
+    if (length(to_remove) == 0) {
       # If we didn't find anything to move to the ordered list,
       # throw a circular reference error
       stop('Circular reference in parameters', call. = F)
@@ -163,4 +171,17 @@ sort.heRovar_list <- function(x, ...) {
 #' @export
 `[.heRovar_list`  <- function(x, i, ...) {
   as.heRovar_list(NextMethod())
+}
+
+#' Vectorized Switch Statement
+#' 
+#' @param x The condition statement
+#' @param ... name-value pairs where name repesents cases of condition
+#' statement and values represent the value it will take on in each case.
+#' 
+#' @return Returns value for the given case.
+#' 
+#' @export
+vswitch <- function(x, ...) {
+  tibble::tibble(...)[[x]]
 }

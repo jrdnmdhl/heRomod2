@@ -3,6 +3,7 @@
 #' Takes a model specification object and runs the model.
 #'
 #' @param model A heRo_model object.
+#' @param ... additional arguments.
 #' 
 #' @return A list containing the results of the model.
 #' 
@@ -101,8 +102,8 @@ evaluate_model_segment <- function(segment, model, env, ...) {
   # Create and sort the parameters object
   uneval_vars <- model$variables %>%
     filter(
-      is_in_segment(., segment$strategy, segment$group),
-      !name %in% names(segment)
+      is_in_segment(.data, segment$strategy, segment$group),
+      !.data$name %in% names(segment)
     ) %>%
     define_variable_list() %>%
     sort()
@@ -176,11 +177,6 @@ evaluate_variable_list <- function(x, ns, ...) {
       # If an object parameter, assign to environment
       assign(name, res, envir = ns$env)
     }
-    # if (any(res %in% error_codes)) {
-    #   cat(crayon::red(stringr::str_pad(name, 20, 'right') %+%  ': ' %+% '\U274C\n'))
-    # } else {
-    #   cat(crayon::red(stringr::str_pad(name, 20, 'right') %+%  ': ' %+% '\U2705\n'))
-    # }
   })
   
   return(ns)

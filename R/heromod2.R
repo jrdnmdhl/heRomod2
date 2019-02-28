@@ -1,23 +1,11 @@
 #' @import dplyr
 #' @import furrr
+#' @import future
 #' @import purrr
 #' @import openxlsx
 #' @importFrom lazyeval lazy lazy_dots lazy_eval as.lazy_dots as.lazy
-NULL
-
-
-#' @importFrom magrittr %>%
-#' @name %>%
-#' @rdname pipe
-#' @export
-NULL
-
-
-
-#' @importFrom crayon %+%
-#' @name %+%
-#' @rdname Concatenate character vectors
-#' @export
+#' @importFrom rlang .data
+#' @importFrom utils capture.output
 NULL
 
 heRo_keywords <- c("cycle_length_days", "cycle_length_weeks", "cycle_length_months", "cycle_length_years",
@@ -38,3 +26,5 @@ tf_code <- 'timeframe'
 
 cl_unit_code <- 'cycle_length_unit'
 cl_code <- 'cycle_length'
+
+. <- NULL

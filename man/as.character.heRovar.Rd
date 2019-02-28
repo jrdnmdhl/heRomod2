@@ -8,6 +8,8 @@
 }
 \arguments{
 \item{x}{A heRovar object.}
+
+\item{...}{additional unused arguments.}
 }
 \value{
 An atomic character vector representing the R-expression.

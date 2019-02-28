@@ -9,8 +9,7 @@ define_namespace(df, env)
 \arguments{
 \item{df}{A data frame of pre-existing parameter values}
 
-\item{parent}{An optional environment to serve as the
-parent to the namespace environment}
+\item{env}{An environment of pre-existing values}
 }
 \description{
 Creates a new namespace object which can be used

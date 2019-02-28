@@ -85,11 +85,22 @@ bootstrap <- function(x, id = NULL, strata = NULL, weight = NULL) {
       ungroup()
 
     sim_index <- resampled_df$.sim
-    select(resampled_df, -.sim) %>%
+    select(resampled_df, -.data$.sim) %>%
       split(sim_index)
   }
 }
 
+#' Resample Model Parameters
+#' 
+#' Resamples the parameters for a model based on the sampling specifications.
+#' 
+#' @param model A heRomodel object
+#' @param n the number of simulations
+#' @param segments the segments for which resampling will be done
+#' @param corr an optional correlation matrix
+#' 
+#' @return a data.frame with resampled data by segment
+#' 
 #' @export
 resample <- function(model, n, segments, corr = NULL) {
   
@@ -97,13 +108,13 @@ resample <- function(model, n, segments, corr = NULL) {
   # id based on name/strategy/group
   params_df <- dplyr::filter(
     model$variables,
-    !is.na(sampling)
+    !is.na(.data$sampling)
   ) %>%
-    dplyr::mutate(.id = paste0('.', strategy, '.', group, '.', name))
+    dplyr::mutate(
+      .id = paste0('.', .data$strategy, '.', .data$group, '.', .data$name)
+    )
   
   n_var <- nrow(params_df)
-  unique_names <- unique(params_df$name)
-  n_var_unique <- length(unique)
 
   # Assume independence if missing correlation matrix
   if (is.null(corr)) {
@@ -126,10 +137,10 @@ resample <- function(model, n, segments, corr = NULL) {
       segments,
       is.na(params_df$strategy[i]) |
         params_df$strategy[i] == '' |
-        params_df$strategy[i] == strategy,
+        params_df$strategy[i] == .data$strategy,
       is.na(params_df$group[i]) |
         params_df$group[i] == '' |
-        params_df$group[i] == group
+        params_df$group[i] == .data$group
     )$eval_vars[[1]]
     
     # Setup the parameter
@@ -147,9 +158,9 @@ resample <- function(model, n, segments, corr = NULL) {
   # Create Segments
   dplyr::rowwise(segments) %>%
     dplyr::do({
-      x <- .
+      x <- .data
       seg_vars <- params_df %>%
-        dplyr::filter(is_in_segment(., x$strategy, x$group))
+        dplyr::filter(is_in_segment(.data, x$strategy, x$group))
       
       dplyr::select_(sampling_df, .dots = c('simulation', seg_vars$.id)) %>%
         magrittr::set_colnames(., c('simulation', seg_vars$name)) %>%
