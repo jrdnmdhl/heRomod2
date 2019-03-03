@@ -10,7 +10,7 @@ Description: An R package for creating and running reproducible and
   of the model such as the strategies being compared and the health
   states between which patients transit.
 Imports: lazyeval, dplyr, magrittr, future, tidyr, furrr, tibble, mvnfast,
-  crayon, openxlsx, knitr, kableExtra, rlang, purrr
+  crayon, openxlsx, rlang, purrr, glue
 License: AGPL-3
 Encoding: UTF-8
 LazyData: true

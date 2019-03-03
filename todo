@@ -1,8 +1,10 @@
 # Add decision tree functions
 # Make parameters definition check that group names are not reused also as strategy names
 # Replace namespace with something simpler
-# - Evaluate everything into lists or environments
+# - Evaluate everything into environments
 # - Check that anything referencing state/model time is a vector of right length
+# Consider memoization
+# Pull variables from excel workbooks based on named ranges
 # Find and update ###TECHDEBT###
 
 http://jiarubai.net/slides/mdt.pdf

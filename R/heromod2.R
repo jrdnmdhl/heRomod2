@@ -3,14 +3,16 @@
 #' @import future
 #' @import purrr
 #' @import openxlsx
-#' @importFrom lazyeval lazy lazy_dots lazy_eval as.lazy_dots as.lazy
-#' @importFrom rlang .data
+#' @importFrom glue glue
+#' @importFrom lazyeval lazy lazy_eval interp as.lazy as.lazy_dots
+#' @importFrom rlang .data sym
 #' @importFrom utils capture.output
 NULL
 
 heRo_keywords <- c("cycle_length_days", "cycle_length_weeks", "cycle_length_months", "cycle_length_years",
                    "model_time", "model_day", "model_week", "model_month", "model_year", "state_time", "state_week", "state_month",
-                   "state_year", "group", "strategy", "simulation", "bc", "analysis_type")
+                   "state_year", "group", "strategy", "simulation", "bc", "analysis_type", '.trees',
+                   'class')
 
 error_codes <- list(
   generic = '#ERR: ',
@@ -26,5 +28,7 @@ tf_code <- 'timeframe'
 
 cl_unit_code <- 'cycle_length_unit'
 cl_code <- 'cycle_length'
+
+tree_def_columns <- c('node', 'tags', 'parent', 'formula')
 
 . <- NULL

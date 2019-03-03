@@ -16,7 +16,11 @@ read_workbook <- function(path) {
 }
 
 define_object <- function(..., class) {
-  structure(list(...), class = class)
+  define_object_(list(...), class)
+}
+
+define_object_ <- function(obj, class) {
+  structure(obj, class = class)
 }
 
 is_in_segment <- function(d, strat, grp, include_globals = T) {
@@ -184,4 +188,8 @@ sort.heRovar_list <- function(x, ...) {
 #' @export
 vswitch <- function(x, ...) {
   tibble::tibble(...)[[x]]
+}
+
+is.empty <- function(x) {
+  is.na(x) | x == ''
 }
