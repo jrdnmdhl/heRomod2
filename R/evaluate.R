@@ -138,13 +138,26 @@ evaluate_variable <- function(x, ns, ...) {
       x$lazy$env <- ns$env
       lazy_eval(x$lazy, data = ns$df)
     },
-    error = function(e) e,
+    error = function(e) {
+      # Check if any of the variables referenced is an error 
+      vars <- x$vars
+      for (i in rev(vars)) {
+        if (i %in% get_names(ns, 'all', keywords = F)) {
+          value <- ns[i]
+          if (class(value) == 'heRo_error') {
+            error_msg <- glue('Error in dependency "{i}".')
+            return(tryCatch(stop(error_msg, call. = F), error = function(e) e))
+          }
+        }
+      }
+      return(e)
+    },
     silent = T
   )
   
   # If an error occurs, send error message
   if ('error' %in% class(res)) {
-    res <- error_codes$generic
+    res <- define_error(res)
   }
   
   # Return the result

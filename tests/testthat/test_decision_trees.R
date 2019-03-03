@@ -44,6 +44,7 @@ test_that("Calculate conditional & unconditional probabilities", {
   
   # Evaluate
   var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
+  plot_decision_tree(var_res['tree'])
   
   # Check results
   expect_equal(var_res['p_event'], 0.15 + 0.005 * c(1,2,3))

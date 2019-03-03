@@ -6,6 +6,9 @@
 #' @importFrom glue glue
 #' @importFrom lazyeval lazy lazy_eval interp as.lazy as.lazy_dots
 #' @importFrom rlang .data sym
+#' @import tidygraph
+#' @import ggraph
+#' @import ggplot2
 #' @importFrom utils capture.output
 NULL
 

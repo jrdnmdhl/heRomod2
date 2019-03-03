@@ -61,14 +61,13 @@ test_that("Error handling", {
   ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3)), new.env())
   var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
   
-  expect_equal(var_res['z'], "#ERR: ")
-  expect_equal(var_res['y'], "#ERR: ")
-  expect_equal(var_res['x'], "#ERR: ")
+  expect_equal(var_res['z']$message, 'Error, variable "blah" not found.')
+  expect_equal(var_res['y']$message, "Error in dependency \"z\".\n")
+  expect_equal(var_res['x']$message, "Error in dependency \"y\".\n")
   expect_equal(var_res['a'], mtcars)
-  expect_equal(unname(var_res['c']), "#ERR: ")
-  expect_equal(var_res['i'], "#ERR: ")
+  expect_equal(var_res['c']$message, "Error in dependency \"x\".\n")
+  expect_equal(var_res['i']$message, "Error in dependency \"c\".\n")
 })
-
 
 test_that("Circular Reference", {
   vars <- tribble(

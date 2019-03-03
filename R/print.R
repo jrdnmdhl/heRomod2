@@ -15,3 +15,8 @@ print.heRovar_list <- function(x, ...) {
     )
   }
 }
+
+#' @export
+print.heRo_error <- function(x, ...) {
+  print(x$message)
+}

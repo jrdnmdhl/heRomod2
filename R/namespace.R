@@ -18,9 +18,9 @@ get_names <- function(ns, type = "all", keywords = T) {
   # Pull out names defined in ns
   if (type == "all") {
     res <- c(colnames(ns$df), ls(ns$env))
-  } else if(type == "df") {
+  } else if (type == "df") {
     res <- colnames(ns$df)
-  } else if(type == "env") {
+  } else if (type == "env") {
     res <- ls(ns$env)
   } else {
     stop("Invalid value for argument 'type'")
