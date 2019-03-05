@@ -3,6 +3,9 @@
 # - Evaluate everything into environments
 # - Check that anything referencing state/model time is a vector of right length
 # Consider memoization
+# Setup a negation operator for decision trees
+# - Use `-` because it has low precedence
+# - User `interp` to replace `-` with the negate function in the lazy objects.
 # Pull variables from excel workbooks based on named ranges
 # Figure out how to handle dependencies of trees (state time!)
 # Set attributes on functions to create runtime dependencies?

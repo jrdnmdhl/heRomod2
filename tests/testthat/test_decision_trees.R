@@ -29,9 +29,12 @@ test_that("Calculate conditional & unconditional probabilities", {
     'p_death_surgery', '0.05',
     'p_event', 'p(event, tree)',
     'p_died', 'p(died, tree)',
+    'p_survived', 'p(-died, tree)',
+    'p_surgery', 'p(surgery, tree)',
     'p_died_given_event', 'p(died | event, tree)',
     'p_event_given_died', 'p(event | died, tree)',
     'p_died_or_surgery', 'p(died %or% surgery, tree)',
+    'p_died_or_not_surgery', 'p(died %or% -surgery, tree)',
     'p_died_and_surgery', 'p(died %and% surgery, tree)',
     'p_died_or_survived_and_had_event_given_surgery', 'p(((died %or% survived) %and% had_event) | surgery, tree)',
     'p_died_or_survived_and_event_given_surgery', 'p(((died %or% survived) %and% event) | surgery, tree)',
@@ -52,6 +55,10 @@ test_that("Calculate conditional & unconditional probabilities", {
     var_res['p_died'],
     (0.15 + 0.005 * c(1,2,3)) * ((0.34 * 0.05) + ((1 - 0.34) * 0.15)) + (1 - (0.15 + 0.005 * c(1,2,3))) * 0.01
   )
+  expect_equal(
+    1 - var_res['p_died'],
+    var_res['p_survived']
+  )
   expect_equal(var_res['p_died_given_event'], rep((0.34 * 0.05) + ((1 - 0.34) * 0.15), 3))
   expect_equal(
     var_res['p_event_given_died'],
@@ -60,6 +67,10 @@ test_that("Calculate conditional & unconditional probabilities", {
   expect_equal(
     var_res['p_died_or_surgery'],
     (0.15 + 0.005 * c(1,2,3)) * (0.34 + ((1 - 0.34) * 0.15)) + (1 - (0.15 + 0.005 * c(1,2,3))) * 0.01
+  )
+  expect_equal(
+    var_res['p_died_or_not_surgery'],
+    1 - var_res['p_surgery'] + var_res['p_died_and_surgery']
   )
   expect_equal(
     var_res['p_died_and_surgery'],

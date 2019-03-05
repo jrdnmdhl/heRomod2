@@ -150,6 +150,7 @@ decision_tree <- function(df, name) {
     terminal_nodes = terminal_nodes,
     cond_prob = cond_prob,
     subtrees = subtrees,
+    all = define_object_(terminal_nodes, class = 'subtree'),
     class = 'eval_decision_tree'
   )
 }
@@ -168,9 +169,10 @@ p <- function(statement, tree) {
     name <- names(tree$subtrees)[i]
     assign(name, subtree, envir = my_env)
   }
+  assign('.all', tree$all, envir = my_env)
   
   # Evaluate probability statement
-  lazy_statement <- lazy(statement)
+  lazy_statement <- as.lazy(interp(lazy(statement), `-` = `not`))
   lazy_statement$env <- my_env
   res <- lazy_eval(lazy_statement)
   
@@ -235,6 +237,14 @@ check_subtree <- function(x) {
   )
   
   define_object_(res, class = 'cond_prob')
+}
+
+not <- function(a) {
+  .all <- get('.all', envir = parent.frame())
+  check_subtree(a)
+  a_nodes <- map_chr(a, ~.$node)
+  complement <- keep(.all, ~!(.$node %in% a_nodes))
+  define_object_(complement, 'subtree')
 }
 
 #' @export
