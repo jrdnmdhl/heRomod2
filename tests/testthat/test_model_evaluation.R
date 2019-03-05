@@ -48,3 +48,23 @@ test_that("Evaluate a Simple Model", {
   
   
 })
+
+
+
+test_that("Evaluate a Model from File", {
+  
+  # Load and run model
+  model <- heRomod2:::read_model(system.file('models', 'checkimab', package = 'heRomod2'))
+  res <- evaluate_model(model)
+  
+  # None of the variables should evaluate to error
+  error_count <- res$segments$eval_vars %>%
+    lapply(function(seg) {
+      seg$env %>%
+        as.list() %>%
+        lapply(function(x) 'heRo_error' %in% class(x)) %>% as.logical()
+    }) %>%
+    unlist() %>%
+    sum()
+  expect_equal(error_count, 0)
+})

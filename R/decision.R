@@ -6,29 +6,33 @@
 define_decision_trees <- function(ns) {
   
   # Make and return a variables list containing the decision trees
-  unique(ns$env$.trees$tree) %>%
-    set_names(.) %>%
-    map(function(x) {
-      
-      # subset the master tree list to the entries for the given tree.
-      tree_df <- filter(ns$env$.trees, .data$tree == x)
-      
-      # Extract from each node the variables referenced and collpase to a
-      # character vector.
-      vars <- ns$env$.trees$formula %>%
-        map(~all.vars(parse(text = .), functions = T)) %>%
-        flatten_chr()
-      
-      # Define a variable which will create the decision tree object.
-      hero_var <- define_variable(paste0('decision_tree(.trees, "', x, '")'))
-      
-      # Add the variables from the tree itself to the dependencies so that it
-      # will be evaluated only after those variables.
-      hero_var$vars <- c(hero_var$vars, vars)
-
-      hero_var
-    }) %>%
-    as.heRovar_list()
+  if (!is.null(ns$env$.trees)) {
+    unique(ns$env$.trees$tree) %>%
+      set_names(.) %>%
+      map(function(x) {
+        
+        # subset the master tree list to the entries for the given tree.
+        tree_df <- filter(ns$env$.trees, .data$tree == x)
+        
+        # Extract from each node the variables referenced and collpase to a
+        # character vector.
+        vars <- ns$env$.trees$formula %>%
+          map(~all.vars(parse(text = .), functions = T)) %>%
+          flatten_chr()
+        
+        # Define a variable which will create the decision tree object.
+        hero_var <- define_variable(paste0('decision_tree(.trees, "', x, '")'))
+        
+        # Add the variables from the tree itself to the dependencies so that it
+        # will be evaluated only after those variables.
+        hero_var$vars <- c(hero_var$vars, vars)
+  
+        hero_var
+      }) %>%
+      as.heRovar_list
+  } else {
+    list()
+  }
 }
 
 parse_csl <- function(string) {

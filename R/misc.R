@@ -1,3 +1,16 @@
+#' @export
+read_model <- function(path) {
+  model <- read_workbook(file.path(path, 'model.xlsx'))
+  model$tables <- list.files(file.path(path, 'data')) %>%
+    purrr::set_names(., gsub('.csv$', '', .)) %>%
+    purrr::map(~read.csv(file.path(path, 'data', .), stringsAsFactor = F, check.names = F))
+  model$scripts <- list.files(file.path(path, 'scripts')) %>%
+    purrr::set_names(., gsub('.R$', '', ., fixed = T)) %>%
+    purrr::map(~readr::read_file(file.path(path,'scripts', .)))
+  
+  define_object_(model, 'heRomodel')
+}
+
 
 #' Read an Excel Workbook
 #' 
@@ -41,6 +54,13 @@ read_in_tables <- function(tables, env, log) {
     assign(name, tables[[name]], envir = env)
     log_print_heading(name, level = 3, log = log)
     log_print_table(dplyr::as_data_frame(tables[[name]]), log = log)
+  }
+}
+
+read_in_trees <- function(trees, env, log) {
+  if ((!is.null(trees)) && nrow(trees) > 0) {
+    env$.trees <- trees
+    log_print_heading('Reading in Trees', level = 3, log = log)
   }
 }
 

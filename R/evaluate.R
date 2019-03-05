@@ -13,8 +13,6 @@ evaluate_model <- function(model, ...) {
   # Capture the extra arguments
   dots <- list(...)
   
-  #print(eval(match.call()[[1]]))
-  
   # Create a results object
   res <- list()
   
@@ -31,6 +29,7 @@ evaluate_model <- function(model, ...) {
   
   # Read the tables into the environment
   read_in_tables(model$tables, model_env, log = log)
+  read_in_trees(model$trees, model_env, log = log)
   
   # Run any model scripts within that environment
   run_scripts(model$scripts, model_env, log = log)
@@ -106,6 +105,8 @@ evaluate_model_segment <- function(segment, model, env, ...) {
       !.data$name %in% names(segment)
     ) %>%
     define_variable_list() %>%
+    append(define_decision_trees(ns), .) %>%
+    as.heRovar_list() %>%
     sort()
   
   # Evaluate the Parameters
