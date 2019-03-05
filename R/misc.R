@@ -47,27 +47,27 @@ is_in_segment <- function(d, strat, grp, include_globals = T) {
 
 read_in_tables <- function(tables, env, log) {
   if (length(tables) > 0) {
-    log_print_section_break(log)
-    log_print_heading('Reading in Tabular Data', level = 2, log = log)
+    log_print_heading('READING TABULAR DATA', level = 2, log = log)
   }
   for (name in names(tables)) {
     assign(name, tables[[name]], envir = env)
     log_print_heading(name, level = 3, log = log)
-    log_print_table(dplyr::as_data_frame(tables[[name]]), log = log)
+    log_print_table(dplyr::as_data_frame(tables[[name]]), log = log, indent = 3)
   }
 }
 
 read_in_trees <- function(trees, env, log) {
   if ((!is.null(trees)) && nrow(trees) > 0) {
     env$.trees <- trees
-    log_print_heading('Reading in Trees', level = 3, log = log)
+    log_print_heading('READING DECISION TREES', level = 3, log = log)
+    log_print_table(dplyr::as_data_frame(trees), log = log, indent = 3)
   }
 }
 
 run_scripts <- function(scripts, env, log) {
   if (length(scripts) > 0) {
     log_print_section_break(log)
-    log_print_heading('Running R Scripts', level = 2, log = log)
+    log_print_heading('RUNNING R SCRIPTS', level = 2, log = log)
   }
   for (name in names(scripts)) {
     log_print_heading(paste0('Running: ', name), level = 3, log = log)
@@ -213,3 +213,5 @@ vswitch <- function(x, ...) {
 is.empty <- function(x) {
   is.na(x) | x == ''
 }
+
+`%&%` <- function(a,b) { paste0(a,b)}

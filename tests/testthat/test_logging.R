@@ -36,7 +36,14 @@ test_that("Logging a Simple Model", {
   )
   testthat::expect_output(
     evaluate_model(model, log = list(level = 2, type = 'console')),
-    'Evaluating strategy'
+    'Evaluating variables'
+  )
+  
+  model1 <- heRomod2:::read_model(system.file('models', 'checkimab', package = 'heRomod2'))
+  
+  testthat::expect_output(
+    evaluate_model(model1, log = list(level = 2, type = 'console')),
+    '✅'
   )
   
   

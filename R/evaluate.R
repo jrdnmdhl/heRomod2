@@ -21,13 +21,13 @@ evaluate_model <- function(model, ...) {
   
   # Determine the log level at which to evaluate model
   log <- get_log_level(dots$log)
-  log_print_heading('Running Model', level = 2, log = log)
+  log_print_heading('RUNNING MODEL', level = 1, log = log)
   
   # Create a new environment from the calling environment which will be used
   # to store model variables.
   model_env <- new.env(parent = parent.frame())
   
-  # Read the tables into the environment
+  # Read the tables & trees into the environment
   read_in_tables(model$tables, model_env, log = log)
   read_in_trees(model$trees, model_env, log = log)
   
@@ -51,10 +51,15 @@ evaluate_model <- function(model, ...) {
   else segments <- dots$newdata
   
   # Run model for each segment
+  log_print_heading(
+    paste0('EVALUATING MODEL SEGMENTS'),
+    level = 2,
+    log = dots$log
+  )
   res$segments <- segments %>%
     rowwise() %>%
     group_split() %>%
-    future_map(function(segment) {
+    map(function(segment) {
       evaluate_model_segment(segment, model, env = model_env, ...)
     }) %>%
     bind_rows()
@@ -83,8 +88,8 @@ evaluate_model_segment <- function(segment, model, env, ...) {
   
   # Log that we are evaluating the strategy
   log_print_heading(
-    paste0('Evaluating strategy: ', segment$strategy, ', group: ', segment$group),
-    level = 2,
+    paste0('Evaluating segment ', segment$strategy, '/', segment$group),
+    level = 3,
     log = dots$log
   )
   
@@ -110,7 +115,24 @@ evaluate_model_segment <- function(segment, model, env, ...) {
     sort()
   
   # Evaluate the Parameters
+  log_print_heading(
+    paste0('Evaluating variables'),
+    level = 4,
+    log = dots$log
+  )
   eval_vars <- evaluate_variable_list(uneval_vars, ns, log = dots$log)
+  
+  log_print_table(get_names(eval_vars, keywords = F) %>% map(function(x) {
+    res <- eval_vars[x]
+    the_class <- class(res)
+    if ('heRo_error' %in% the_class) result <- '❌'
+    else result <- '✅'
+    tibble(
+      name = x,
+      class = the_class,
+      result = result
+    )
+  }) %>% bind_rows(), log = dots$log, indent = 4)
   
   # Return segment row
   segment$uneval_vars <- list(uneval_vars)
@@ -180,6 +202,8 @@ evaluate_variable_list <- function(x, ns, ...) {
   
   # Iterate over each parameter and its name
   walk2(names(x), x, function(name, value) {
+    
+    # Evaluate it
     res <- evaluate_variable(value, ns)
     
     # Determine whether result is a vector or object parameter

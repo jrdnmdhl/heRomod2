@@ -54,7 +54,9 @@ test_that("Error handling", {
     'a'  , 'mtcars',
     'b'  , 'lm(mpg~disp, data = a)',
     'c'  , 'predict(b, newdata = data.frame(disp = x))',
-    'i'  , 'model_time + c'
+    'i'  , 'model_time + c',
+    'j'  , 'test(',
+    'k'  , 'j + 1'
   )
   var_list <- heRomod2:::define_variable_list(vars) %>%
     sort()
@@ -67,6 +69,8 @@ test_that("Error handling", {
   expect_equal(var_res['a'], mtcars)
   expect_equal(var_res['c']$message, "Error in dependency \"x\".\n")
   expect_equal(var_res['i']$message, "Error in dependency \"c\".\n")
+  expect_equal(var_res['j']$message, "Error in formula syntax.\n")
+  expect_equal(var_res['k']$message, "Error in dependency \"j\".\n")
 })
 
 test_that("Circular Reference", {

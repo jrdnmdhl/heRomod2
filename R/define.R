@@ -20,7 +20,7 @@ define_variable <- function(string) {
   if (inherits(tryExpr, "try-error")) {
     res_list <- list(
       text = string,
-      lazy = as.lazy('"#ERR: Invalid Expression!"'),
+      lazy = as.lazy(glue('tryCatch(stop("Error in formula syntax.", call. = F), error = function(e) e)')),
       err = tryExpr,
       vars = ''
     )
