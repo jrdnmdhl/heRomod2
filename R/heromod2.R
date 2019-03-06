@@ -1,6 +1,7 @@
 #' @import dplyr
 #' @import furrr
 #' @import future
+#' @import tidyr
 #' @import purrr
 #' @import openxlsx
 #' @importFrom glue glue
