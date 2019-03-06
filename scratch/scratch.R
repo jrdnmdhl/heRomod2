@@ -23,41 +23,22 @@ library(heRomod2)
 # res2 <- evaluate_model(model, log = list(level=0,type='console', parallel_mode = 'parallel'), newdata = hmm)
 
 
-df <- data.frame(
-  model_time = 1:1000
-)
-
-state_names <- paste0('state', 1:100)
+state_names <- paste0('state', 1:500)
 trans <- expand.grid(from = state_names, to = state_names, stringsAsFactors = F)
 trans$formula <- 'exp(-model_time*0.05)'
 
 ns <- heRomod2:::create_namespace(100, 1, 1, new.env())
 testit <- evaluate_longform_matrix(trans, ns)
-test1 <- longform_to_wide_matrix(testit, state_names)
+test <- longform_to_wide_matrix(testit, state_names)
+test1 <- longform_to_wide_matrix1(testit, state_names)
+microbenchmark::microbenchmark(
+  a = longform_to_wide_matrix(testit, state_names),
+  b = longform_to_wide_matrix1(testit, state_names),
+  times = 5
+)
 
-a <- function(){
-  trans %>%
-    dplyr::rowwise() %>%
-    dplyr::group_split() %>%
-    purrr::map(
-      function(x) {
-        df$value <- lazyeval::lazy_eval(formula, data = df)
-        df$from <- x$from
-        df$to <- x$to
-        df
-      }
-    ) %>%
-    dplyr::bind_rows()
-}
-
-b <- function() {
-  trans_names <- paste0(trans$from, '.', trans$to)
-  formulas <- lazyeval::as.lazy_dots(purrr::set_names(rep(list(formula), length(trans_names)), trans_names))
-  dplyr::mutate_(df, .dots = formulas)
-}
-
-microbenchmark::microbenchmark(a = a(), b = b(), times = 1)
-
+prof <- lineprof::lineprof(longform_to_wide_matrix(testit, state_names))
+prof1 <- lineprof::lineprof(longform_to_wide_matrix1(testit, state_names))
 
 #microbenchmark::microbenchmark(evaluate(model, log = list(level=0,type='console')), times=5)
 

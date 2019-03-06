@@ -21,8 +21,17 @@ evaluate_longform_matrix <- function(df, ns) {
 
 #' @export
 longform_to_wide_matrix <- function(df, state_names) {
-  df$.from_index <- which(df$from %in% state_names)
-  df$.to_index <- which(df$from %in% state_names)
-  df$.cell <- paste0('cell_', df$.to_index, '_' , df$.from_index)
-  wide_df <- spread(df, .cell, value)
+  n_state <- length(state_names)
+  n_time <- max(df$model_time)
+  dims <- c(n_state, n_state, n_time)
+  df$.from_index <- as.numeric(factor(df$from, levels = state_names))
+  df$.to_index <- as.numeric(factor(df$to, levels = state_names))
+  arr <- fill3dArray(
+    df$.from_index,
+    df$.to_index,
+    df$model_time,
+    df$value,
+    dims
+  )
+  array(arr, dim = dims)
 }

@@ -9,12 +9,30 @@ Description: An R package for creating and running reproducible and
   creating using a consistent tabular structure which defines features
   of the model such as the strategies being compared and the health
   states between which patients transit.
-Imports: lazyeval, dplyr, magrittr, future, tidyr, furrr, tibble, mvnfast,
-  crayon, openxlsx, rlang, purrr, glue, ggplot2, ggraph, tidygraph
+Imports: 
+    lazyeval,
+    dplyr,
+    magrittr,
+    future,
+    tidyr,
+    furrr,
+    tibble,
+    mvnfast,
+    crayon,
+    openxlsx,
+    rlang,
+    purrr,
+    glue,
+    ggplot2,
+    ggraph,
+    tidygraph,
+    Rcpp
 License: AGPL-3
 Encoding: UTF-8
 LazyData: true
 Suggests: 
     testthat,
     covr
-RoxygenNote: 6.1.1
+RoxygenNote: 6.0.1
+LinkingTo: 
+    Rcpp
