@@ -13,7 +13,7 @@ cache: packages
 r_packages:
   - covr
 install:
-- sudo apt-get install libudunits2-dev
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; sudo apt-get install libudunits2-dev; fi
 - R -e 'install.packages("devtools", repos = "http://cran.rstudio.com")'
 - R -e 'devtools::install_deps(dep = T)'
 compiler: gcc
