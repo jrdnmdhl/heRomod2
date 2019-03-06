@@ -4,7 +4,6 @@ language: R
 r:
   - oldrel
   - release
-  - devel
 sudo: false
 os:
 - osx
