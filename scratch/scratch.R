@@ -23,22 +23,24 @@ library(heRomod2)
 # res2 <- evaluate_model(model, log = list(level=0,type='console', parallel_mode = 'parallel'), newdata = hmm)
 
 
-state_names <- paste0('state', 1:500)
+state_names <- paste0('state', 1:2)
 trans <- expand.grid(from = state_names, to = state_names, stringsAsFactors = F)
 trans$formula <- 'exp(-model_time*0.05)'
 
-ns <- heRomod2:::create_namespace(100, 1, 1, new.env())
+ns <- heRomod2:::create_namespace(3, 4, 1, new.env())
 testit <- evaluate_longform_matrix(trans, ns)
-test <- longform_to_wide_matrix(testit, state_names)
-test1 <- longform_to_wide_matrix1(testit, state_names)
+testit_expand <- expand_eval_longform_matrix(testit)
+the_names  <- unique(testit_expand$from)
+test <- longform_to_wide_matrix(testit_expand, the_names)
 microbenchmark::microbenchmark(
   a = longform_to_wide_matrix(testit, state_names),
   b = longform_to_wide_matrix1(testit, state_names),
   times = 5
 )
 
-prof <- lineprof::lineprof(longform_to_wide_matrix(testit, state_names))
+prof <- lineprof::lineprof(longform_to_wide_matrix(testit, the_names))
 prof1 <- lineprof::lineprof(longform_to_wide_matrix1(testit, state_names))
+prof2 <- lineprof::lineprof(expand_eval_longform_matrix(testit))
 
 #microbenchmark::microbenchmark(evaluate(model, log = list(level=0,type='console')), times=5)
 
