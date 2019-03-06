@@ -13,10 +13,6 @@
 #' @importFrom utils capture.output
 NULL
 
-#' @useDynLib heRomod2, .registration = TRUE
-#' @importFrom Rcpp sourceCpp
-NULL
-
 heRo_keywords <- c("cycle_length_days", "cycle_length_weeks", "cycle_length_months", "cycle_length_years",
                    "model_time", "model_day", "model_week", "model_month", "model_year", "state_time", "state_week", "state_month",
                    "state_year", "group", "strategy", "simulation", "bc", "analysis_type", '.trees',

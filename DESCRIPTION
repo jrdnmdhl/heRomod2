@@ -25,14 +25,11 @@ Imports:
     glue,
     ggplot2,
     ggraph,
-    tidygraph,
-    Rcpp
+    tidygraph
 License: AGPL-3
 Encoding: UTF-8
 LazyData: true
 Suggests: 
     testthat,
     covr
-RoxygenNote: 6.0.1
-LinkingTo: 
-    Rcpp
+RoxygenNote: 6.1.1

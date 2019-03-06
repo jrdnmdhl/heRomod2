@@ -1,7 +1,14 @@
 # R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
 
 language: R
+r:
+  - oldrel
+  - release
+  - devel
 sudo: false
+os:
+- osx
+- linux
 cache: packages
 r_packages:
   - covr
@@ -9,6 +16,7 @@ install:
 - sudo apt-get install libudunits2-dev
 - R -e 'install.packages("devtools", repos = "http://cran.rstudio.com")'
 - R -e 'devtools::install_deps(dep = T)'
+compiler: gcc
 script:
 - travis_wait R CMD build .
 - travis_wait R CMD check *tar.gz

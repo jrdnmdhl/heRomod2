@@ -24,14 +24,12 @@ longform_to_wide_matrix <- function(df, state_names) {
   n_state <- length(state_names)
   n_time <- max(df$model_time)
   dims <- c(n_state, n_state, n_time)
-  df$.from_index <- as.numeric(factor(df$from, levels = state_names))
-  df$.to_index <- as.numeric(factor(df$to, levels = state_names))
-  arr <- fill3dArray(
-    df$.from_index,
-    df$.to_index,
-    df$model_time,
-    df$value,
-    dims
-  )
+  from_index <- as.numeric(factor(df$from, levels = state_names)) - 1
+  to_index <- as.numeric(factor(df$to, levels = state_names)) - 1
+  time_index <- df$model_time - 1
+  arr_index <-  + from_index * n_state * n_time + to_index * n_time + time_index
+  arr <- numeric(n_time * n_state^2)
+  arr[arr_index] <-  df$value
   array(arr, dim = dims)
 }
+
