@@ -48,6 +48,25 @@ expand_eval_longform_matrix <- function(df) {
   df[, c('model_time', 'state_time', 'from', 'to', 'value')]
 }
 
+array_last_unique_val <- function(mat, st_dim) {
+  dims <- dim(mat)
+  n_dim <- length(dims)
+  st_dim_l <- dims[st_dim]
+  access_str <- paste0(
+    'mat[',
+    strrep(',', st_dim - 1),
+    st_dim_l,
+    strrep(',', n_dim - st_dim),
+    ']'
+  )
+  last_mat <- eval(parse(text = access_str))
+  diff_from_last <- apply(mat, st_dim, function(x) {
+    all(x != last_mat)
+  })
+  if (!any(diff_from_last)) return(-1)
+  max(which(diff_from_last))
+}
+
 #' @export
 longform_to_wide_matrix <- function(df, state_names) {
   n_state <- length(state_names)
@@ -65,6 +84,32 @@ longform_to_wide_matrix <- function(df, state_names) {
     as.character(seq_len(n_time))
   )
   arr
+}
+
+#' @export
+longform_to_array <- function(df, dimcols, value) {
+  n_dims <- length(dimcols)
+  index <- integer(nrow(df))
+  lengths <- integer(n_dims)
+  uniques <- vector(mode = 'list', length = n_dims)
+  factors <- vector(mode = 'list', length = n_dims)
+  for (i in seq_len(n_dims)) {
+    uniques[[i]] <- unique(df[[dimcols[i]]])
+    lengths[i] <- length(uniques[[i]])
+    factors[[i]] <- as.numeric(factor(df[[dimcols[i]]], levels = uniques[[i]]))
+  }
+  for (i in seq_len(n_dims)) {
+    if (i == 1) {
+      index <- index + factors[[1]]
+    } else {
+      prev_indices <- seq_len(i - 1)
+      multiplier <- prod(lengths[prev_indices])
+      index <- index + (factors[[i]] - 1) * multiplier
+    }
+  }
+  vec <- numeric(prod(lengths))
+  vec[index] <- df[[value]]
+  array(vec, dim = lengths)
 }
 
 
