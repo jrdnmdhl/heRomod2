@@ -7,6 +7,9 @@
 # Add variables at tree nodes
 # Automatic collapsing of state-time is a no-go, need to properly propagate references to state_time!!
 #   Need to figure out how to do this w/ decision trees!!!
+#   Can do this by parsing calls to p(). Safe to do this because you can't pipe
+#     into first argument of p() because it uses NSE.
+# Try checking state-time dependency inside loop of trans prob evaluation.
 # Pull variables from excel workbooks based on named ranges
 # Figure out how to handle dependencies of trees (state time!)
 # Set attributes on functions to create runtime dependencies?

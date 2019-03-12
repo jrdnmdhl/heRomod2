@@ -23,12 +23,35 @@ library(heRomod2)
 # res2 <- evaluate_model(model, log = list(level=0,type='console', parallel_mode = 'parallel'), newdata = hmm)
 
 
-state_names <- paste0('state', 1:50)
+state_names <- paste0('state', 1:20)
 trans <- expand.grid(from = state_names, to = state_names, stringsAsFactors = F)
-trans$formula <- 'ifelse(state_time <=3 , exp(-state_time*0.05), 0.3)'
+trans$formula <- 'ifelse(state_time <=30 , exp(-state_time*0.05), 0.3)'
 
-ns <- heRomod2:::create_namespace(50, 50, 1, new.env())
+ns <- heRomod2:::create_namespace(50, 40, 1, new.env())
+
+microbenchmark::microbenchmark(
+  a = {
+    testit <- evaluate_longform_matrix1(trans, ns)
+    # testit_expand <- expand_eval_longform_matrix(testit)
+    # the_names  <- unique(testit_expand$from)
+    # test <- longform_to_wide_matrix(testit_expand, the_names)
+  },
+  b = {
+    testit <- evaluate_longform_matrix2(trans, ns)
+    # testit_expand <- expand_eval_longform_matrix(dplyr::filter(testit, state_time <= max_st))
+    # the_names  <- unique(testit_expand$from)
+    # test <- longform_to_wide_matrix(testit_expand, the_names)
+  },
+  times = 5
+)
+
 testit <- evaluate_longform_matrix(trans, ns)
+
+
+
+
+
+
 testit_expand <- expand_eval_longform_matrix(testit)
 testit_expand1 <- expand_eval_longform_matrix1(testit)
 the_names  <- unique(testit_expand$from)

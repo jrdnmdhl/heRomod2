@@ -1,6 +1,6 @@
 
 #' @export
-evaluate_longform_matrix <- function(df, ns) {
+evaluate_longform_matrix <- function(df, ns, calc_max_st = TRUE) {
   base_df <- ns$df
   base_env <- ns$env
   time_df <- select(base_df, .data$model_time, .data$state_time)
@@ -17,10 +17,17 @@ evaluate_longform_matrix <- function(df, ns) {
       lazy_expr$env <- base_env
       # Evaluate it using the namespace dataframe
       time_df$value <- lazyeval::lazy_eval(lazy_expr, data = base_df)
+      # Transform to matrix to check st-dependency
+      val_mat <- longform_to_array(time_df, c('state_time', 'model_time'), 'value')
+      last_index <- array_last_unique_val(val_mat, 1)
+      time_df$max_st <- last_index
       # Return
       time_df
     }) %>%
-    dplyr::bind_rows()
+    bind_rows() %>%
+    group_by(from) %>%
+    mutate(max_st = max(max_st)) %>%
+    ungroup()
   
   eval_trans
 }
@@ -65,25 +72,6 @@ array_last_unique_val <- function(mat, st_dim) {
   })
   if (!any(diff_from_last)) return(-1)
   max(which(diff_from_last))
-}
-
-#' @export
-longform_to_wide_matrix <- function(df, state_names) {
-  n_state <- length(state_names)
-  n_time <- max(df$model_time)
-  dims <- c(n_state, n_state, n_time)
-  from_index <- as.numeric(factor(df$from, levels = state_names)) 
-  to_index <- as.numeric(factor(df$to, levels = state_names))
-  arr_index <- (df$model_time - 1) * n_state^2 + (to_index-1) * n_state + from_index
-  arr <- numeric(n_time * n_state^2)
-  arr[arr_index] <-  df$value
-  arr <- array(arr, dim = dims)
-  dimnames(arr) <- list(
-    state_names,
-    state_names,
-    as.character(seq_len(n_time))
-  )
-  arr
 }
 
 #' @export

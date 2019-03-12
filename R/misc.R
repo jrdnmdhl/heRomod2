@@ -215,3 +215,41 @@ is.empty <- function(x) {
 }
 
 `%&%` <- function(a,b) { paste0(a,b)}
+
+extract_call_vars <- function(expr) {
+  call_vars <- lapply(testit, function(x) all.vars(x))
+  names(call_vars) <- c('func', paste0('arg', seq_len(length(expr) - 1)))
+  call_vars
+}
+
+extract_func_calls <- function(expr, funcs) {
+  if (is.call(expr)) {
+    if (as.character(expr[[1]]) %in% funcs) {
+      ret <- list(extract_call_vars(expr))
+    } else {
+      ret <- unlist(
+        lapply(expr, function(x) extract_func_calls(x, funcs)),
+        recursive = F
+      )
+    }
+  } else if (is.name(expr) || is.atomic(expr)) {
+    ret <- list()
+  } else {
+    ret <- unlist(
+      lapply(expr, function(x) extract_func_calls(x, funcs)),
+      recursive = F
+    )
+  }
+  
+  ret
+}
+
+resolve_p_references <- function(calls) {
+  unique(
+      flatten_chr(
+      map(calls, function(x) {
+        '.trees.' %&% x$arg2[[1]] %&% '.' %&% x$arg1
+      })
+    )
+  )
+}
