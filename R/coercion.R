@@ -39,7 +39,7 @@ as.heRovar.character <- function(x) {
 # list => heRovar
 as.heRovar.list <- function(x) {
   # Check for essential fields then set class property.
-  props_to_check <- c('text', 'vars', 'lazy')
+  props_to_check <- c('text', 'depends', 'lazy')
   for (prop in props_to_check) {
     if (is.null(x[[prop]])) stop(paste0('Property "', prop, '" was missing.'))
   }

@@ -126,51 +126,66 @@ days_per_unit <- function(unit) {
 #' resolution and identify any circular references.
 #'
 #' @param x The heRovar_list object to be sorted
-#' @param ... Unused parameters to match sort call signature
+#' @param ... Unused variables to match sort call signature
 #'
 #' @export
 sort.heRovar_list <- function(x, ...) {
   
-  # Extract parameter names
+  # Extract variable names
   par_names <- names(x)
   
-  # Extract the names referenced in each parameter's
+  # Extract the names referenced in each variable's
   # formula
   var_list <- purrr::map(x, function(y) {
-    vars <- y$vars
+    vars <- c(y$depends, y$after)
     vars[vars %in% par_names]
   })
   
-  # Define the lists of ordered and unordered parameters
+  # Define the lists of ordered and unordered variables
   ordered <- c()
   unordered <- var_list
   
-  # While we still have parameters in the unordered list...
+  # While we still have variables in the unordered list...
   while (length(unordered) > 0) {
     
     # Define a vector which will hold the indices of each
-    # parameter to be moved to the ordered list
+    # variable to be moved to the ordered list
     to_remove <- c()
     
-    # Loop through each unordered parameter
+    # Loop through each unordered variable
     for (i in seq_len(length(unordered))) {
       
-      # If all the parameters its formula references
+      # If all the variables its formula references are in the ordered
+      # list then it can be added to ordered list.
       if (all(unordered[[i]] %in% ordered)) {
         
-        # Append it to the list of ordered parameters
+        # Append it to the list of ordered variables
         ordered <- c(ordered, names(unordered)[i])
         
-        # Add second-order dependencies to variable
+        # Get current variable
         current_var <-  names(unordered)[i]
-        x[[current_var]]$vars <- x %>%
-          .[x[[current_var]]$vars] %>%
-          lapply(function(x) x$vars) %>%
-          purrr::discard(is.null) %>%
-          purrr::flatten_chr(.) %>%
-          union(x[[current_var]]$vars)
         
-        # and mark it  for remval
+        # Extract any decision tree probability calls
+        p_calls <- extract_func_calls(x[[current_var]]$lazy$expr, 'p')
+        tree_deps <- map(p_calls, function(y) {
+          referenced_nodes <- x[[y$arg2]]$node_depends %>%
+            keep(~any(.$tags %in% y$arg1)) %>%
+            map(~.$depends) %>%
+            flatten_chr()
+        }) %>% flatten_chr()
+        
+        # Assemble first-order depencies
+        fo_deps <- unique(c(x[[current_var]]$depends, tree_deps))
+        
+        # Add second+ order dependencies to variable
+        x[[current_var]]$depends <- x %>%
+          .[fo_deps] %>%
+          lapply(function(x) x$depends) %>%
+          discard(is.null) %>%
+          flatten_chr(.) %>%
+          union(fo_deps)
+        
+        # and mark it  for removal
         to_remove <- c(to_remove, i)
       }
     }
@@ -180,13 +195,13 @@ sort.heRovar_list <- function(x, ...) {
       # throw a circular reference error
       stop('Circular reference in parameters', call. = F)
     } else {
-      # Otherwise, remove from the unordered list the parameters
+      # Otherwise, remove from the unordered list the variables
       # that were appended to the ordered list
       unordered <- unordered[-to_remove]
     }
   }
   
-  # Sort the parameters list according to the new order
+  # Sort the variables list according to the new order
   res <- x[ordered]
   res
   
@@ -217,7 +232,7 @@ is.empty <- function(x) {
 `%&%` <- function(a,b) { paste0(a,b)}
 
 extract_call_vars <- function(expr) {
-  call_vars <- lapply(testit, function(x) all.vars(x))
+  call_vars <- lapply(expr, function(x) all.vars(x))
   names(call_vars) <- c('func', paste0('arg', seq_len(length(expr) - 1)))
   call_vars
 }
@@ -244,7 +259,7 @@ extract_func_calls <- function(expr, funcs) {
   ret
 }
 
-resolve_p_references <- function(calls) {
+resolve_tree_references <- function(calls) {
   unique(
       flatten_chr(
       map(calls, function(x) {

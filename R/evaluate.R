@@ -163,7 +163,7 @@ evaluate_variable <- function(x, ns, ...) {
     },
     error = function(e) {
       # Check if any of the variables referenced is an error 
-      vars <- x$vars
+      vars <- x$depends
       for (i in rev(vars)) {
         if (i %in% get_names(ns, 'all', keywords = F)) {
           value <- ns[i]

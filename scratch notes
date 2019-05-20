@@ -1,0 +1,16 @@
+# Place where state_time can be used
+- Transition Matrices
+- State Values
+
+
+# Order of operations
+- Evaluate parameters
+- Evaluate initial values
+- Evaluate state values
+- Evaluate transitions
+- Evaluate transition values
+- Reduce Values & Transitions
+- Convert Transitions to Array
+- Convert Values to Array
+- Calculate Trace
+- Calculate Values

@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{The heRovar_list object to be sorted}
 
-\item{...}{Unused parameters to match sort call signature}
+\item{...}{Unused variables to match sort call signature}
 }
 \description{
 Sorts a heRovar_list object in order to solve issues of dependency

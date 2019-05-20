@@ -13,6 +13,7 @@
 # Pull variables from excel workbooks based on named ranges
 # Figure out how to handle dependencies of trees (state time!)
 # Set attributes on functions to create runtime dependencies?
+# Create state groups and allow states within a group to share state_time
 # Find and update ###TECHDEBT###
 
 http://jiarubai.net/slides/mdt.pdf

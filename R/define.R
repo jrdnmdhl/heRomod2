@@ -20,15 +20,20 @@ define_variable <- function(string) {
   if (inherits(tryExpr, "try-error")) {
     res_list <- list(
       text = string,
-      lazy = as.lazy(glue('tryCatch(stop("Error in formula syntax.", call. = F), error = function(e) e)')),
+      lazy = as.lazy(
+        'tryCatch(stop("Error in formula syntax."' %&%
+        ', call. = F), error = function(e) e)'
+      ),
       err = tryExpr,
-      vars = ''
+      depends = '',
+      after = ''
     )
   } else {
     res_list <- list(
       text = string,
       lazy = tryExpr,
-      vars = all.vars(tryExpr$expr, functions = T)
+      depends = all.vars(tryExpr$expr, functions = T),
+      after = ''
     )
   }
 

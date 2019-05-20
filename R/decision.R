@@ -10,23 +10,47 @@ define_decision_trees <- function(ns) {
     unique(ns$env$.trees$tree) %>%
       set_names(.) %>%
       map(function(x) {
-        
-        # subset the master tree list to the entries for the given tree.
+        # Subset the master tree list to the entries for the given tree.
         tree_df <- filter(ns$env$.trees, .data$tree == x)
         
-        # Extract from each node the variables referenced and collpase to a
-        # character vector.
-        vars <- ns$env$.trees$formula %>%
-          map(~all.vars(parse(text = .), functions = T)) %>%
-          flatten_chr()
+        # Extract the dependencies for each node
+        vars_by_node <- tree_df %>%
+          rowwise() %>%
+          group_split() %>%
+          set_names(tree_df$node) %>%
+          map(function(y) {
+            vars <- all.vars(parse(text = y$formula), functions = T)
+            # If a node variable references C, effectively its dependencies include
+            # the dependencies of all other nodes at with the same parent in the tree.
+            if ('C' %in% vars) {
+              vars <- filter(tree_df, .data$parent == y$parent) %>%
+                .$formula %>%
+                map(~all.vars(parse(text = .), functions = T)) %>%
+                flatten_chr() %>%
+                unique()
+            }
+            list(
+              node = y$node,
+              tags = c(y$node, y$tags),
+              depends = vars
+            )
+          })
+        
+        # Collapse to a character vector
+        vars <- unique(flatten_chr(map(vars_by_node, ~.$depends)))
         
         # Define a variable which will create the decision tree object.
         hero_var <- define_variable(paste0('decision_tree(.trees, "', x, '")'))
         
-        # Add the variables from the tree itself to the dependencies so that it
-        # will be evaluated only after those variables.
-        hero_var$vars <- c(hero_var$vars, vars)
+        # Add the variables from the tree itself to the 'after' field to ensure the
+        # tree is evaluated after all variables referenced by it
+        hero_var$after <- vars
+        
+        # Add the list of dependencies by node so that calls that references nodes can
+        # inherit those dependencies
+        hero_var$node_depends <- vars_by_node
   
+        # Return the variable
         hero_var
       }) %>%
       as.heRovar_list
