@@ -4,12 +4,12 @@
 \alias{define_namespace}
 \title{Define a Namespace Object}
 \usage{
-define_namespace(df, env)
+define_namespace(env, df, additional = null)
 }
 \arguments{
-\item{df}{A data frame of pre-existing parameter values}
-
 \item{env}{An environment of pre-existing values}
+
+\item{df}{A data frame of pre-existing parameter values}
 }
 \description{
 Creates a new namespace object which can be used

@@ -1,17 +1,13 @@
-#' Define a decision Tree
-#' 
-#' @param df a data.frame representing the decision trees.
-#' 
-#' @export
-define_decision_trees <- function(ns) {
+#' Define Decision Trees
+parse_tree_vars <- function(trees) {
   
   # Make and return a variables list containing the decision trees
-  if (!is.null(ns$env$.trees)) {
-    unique(ns$env$.trees$tree) %>%
+  if (!is.null(trees)) {
+    unique(trees$name) %>%
       set_names(.) %>%
       map(function(x) {
         # Subset the master tree list to the entries for the given tree.
-        tree_df <- filter(ns$env$.trees, .data$tree == x)
+        tree_df <- filter(trees, .data$name == x)
         
         # Extract the dependencies for each node
         vars_by_node <- tree_df %>%
@@ -31,7 +27,77 @@ define_decision_trees <- function(ns) {
             }
             list(
               node = y$node,
-              tags = c(y$node, y$tags),
+              tags = c(y$node, parse_csl(y$tags)),
+              depends = vars
+            )
+          })
+        
+        # Collapse to a character vector
+        vars <- unique(flatten_chr(map(vars_by_node, ~.$depends)))
+        
+        # Define a variable which will create the decision tree object.
+        hero_var <- define_formula(paste0('decision_tree(.trees, "', x, '")'))
+        
+        # Add the variables from the tree itself to the 'after' field to ensure the
+        # tree is evaluated after all variables referenced by it
+        hero_var$after <- vars
+        
+        # Add the list of dependencies by node so that calls that references nodes can
+        # inherit those dependencies
+        hero_var$node_depends <- vars_by_node
+        
+        # Return the row
+        tibble(
+          name = x,
+          display_name = x,
+          description = x,
+          formula = list(hero_var)
+        )
+      }) %>%
+      bind_rows()
+  } else {
+    tibble()
+  }
+}
+
+check_trees_df <- function(trees) {
+  
+}
+
+#' Define a decision Tree
+#' 
+#' @param trees a data.frame representing the decision trees.
+#' 
+#' @export
+define_decision_trees <- function(trees) {
+  
+  # Make and return a variables list containing the decision trees
+  if (!is.null(trees)) {
+    unique(trees$name) %>%
+      set_names(.) %>%
+      map(function(x) {
+        # Subset the master tree list to the entries for the given tree.
+        tree_df <- filter(trees, .data$name == x)
+        
+        # Extract the dependencies for each node
+        vars_by_node <- tree_df %>%
+          rowwise() %>%
+          group_split() %>%
+          set_names(tree_df$node) %>%
+          map(function(y) {
+            vars <- all.vars(parse(text = y$formula), functions = T)
+            # If a node variable references C, effectively its dependencies include
+            # the dependencies of all other nodes at with the same parent in the tree.
+            if ('C' %in% vars) {
+              vars <- filter(tree_df, .data$parent == y$parent) %>%
+                .$formula %>%
+                map(~all.vars(parse(text = .), functions = T)) %>%
+                flatten_chr() %>%
+                unique()
+            }
+            list(
+              node = y$node,
+              tags = c(y$node, parse_csl(y$tags)),
               depends = vars
             )
           })
@@ -58,13 +124,6 @@ define_decision_trees <- function(ns) {
     list()
   }
 }
-
-parse_csl <- function(string) {
-  gsub('\\s', '', string) %>%
-    strsplit(',') %>%
-    flatten_chr()
-}
-
 check_tree_df <- function(df, name) {
   
   # Check that it has the right columns
@@ -107,7 +166,7 @@ decision_tree <- function(df, name) {
   the_env <- parent.frame()
   
   # Pull out tree from trees df and check it
-  tree_df <- filter(df, .data$tree == name)
+  tree_df <- filter(df, .data$name == name)
   check_tree_df(tree_df, name)
   tree_df$parent <- ifelse(is.na(tree_df$parent), '', tree_df$parent)
   
@@ -146,7 +205,7 @@ decision_tree <- function(df, name) {
     group_split() %>%
     map(function(x) {
       prob <- cond_prob[[x$node]]
-      tags <- c(x$node, parse_csl(x$tags))
+      tags <- c(x$node, x$tags)
       parent <- x$parent
       while (!is.empty(parent)) {
         parent_prob <- cond_prob[[parent]]
@@ -155,9 +214,9 @@ decision_tree <- function(df, name) {
         parent_tags <- parent_df$tags[1]
         parent_node <- parent_df$node[1]
         prob <- prob * parent_prob
-        tags <- c(tags, parent_node, parse_csl(parent_tags))
+        tags <- c(tags, parent_node, parent_tags)
       }
-      list(node = x$node, prob = prob, tags = tags)
+      list(node = x$node, prob = prob, tags = parse_csl(tags))
     })
   
   tag_names <- unique(map(terminal_nodes, ~.$tags) %>% flatten_chr())

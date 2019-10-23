@@ -33,53 +33,38 @@ define_object <- function(..., class) {
 }
 
 define_object_ <- function(obj, class) {
-  structure(obj, class = class)
+  class(obj) <- class
+  obj
 }
 
-is_in_segment <- function(d, strat, grp, include_globals = T) {
-  is_my_strat <- d$strategy == strat
-  is_my_group <- d$group == grp
-  not_strat_spec <- (is.na(d$strategy) | d$strategy == '') & include_globals
-  not_group_spec <- (is.na(d$group) | d$group == '') & include_globals
-  
-  (is_my_strat | not_strat_spec) & (is_my_group | not_group_spec)
+create_default_group <- function() {
+  tibble(
+    name = 'all',
+    display_name = 'All Patients',
+    description = 'Entire model population.',
+    weight = 1,
+    enabled = 1
+  )
 }
 
-read_in_tables <- function(tables, env, log) {
-  if (length(tables) > 0) {
-    log_print_heading('READING TABULAR DATA', level = 2, log = log)
-  }
+load_tables <- function(tables, env) {
   for (name in names(tables)) {
     assign(name, tables[[name]], envir = env)
-    log_print_heading(name, level = 3, log = log)
-    log_print_table(dplyr::as_data_frame(tables[[name]]), log = log, indent = 3)
   }
 }
 
-read_in_trees <- function(trees, env, log) {
+load_trees <- function(trees, env) {
   if ((!is.null(trees)) && nrow(trees) > 0) {
     env$.trees <- trees
-    log_print_heading('READING DECISION TREES', level = 3, log = log)
-    log_print_table(dplyr::as_data_frame(trees), log = log, indent = 3)
   }
 }
 
-run_scripts <- function(scripts, env, log) {
-  if (length(scripts) > 0) {
-    log_print_section_break(log)
-    log_print_heading('RUNNING R SCRIPTS', level = 2, log = log)
-  }
+run_scripts <- function(scripts, env) {
   for (name in names(scripts)) {
-    log_print_heading(paste0('Running: ', name), level = 3, log = log)
     eval(parse(text = scripts[[name]]), envir = env)
   }
 }
 
-get_cycle_length_days <- function(settings) {
-  days_per_cl_unit <- days_per_unit(settings$value[settings$setting == cl_unit_code][1])
-  cl <- as.numeric(settings$value[settings$setting == cl_code][1])
-  cl * days_per_cl_unit
-}
 
 get_segments <- function(model) {
   
@@ -100,24 +85,10 @@ get_segments <- function(model) {
   )
 }
 
-get_n_cycles <- function(settings) {
-  days_per_tf_unit <- days_per_unit(settings$value[settings$setting == tf_unit_code][1])
-  days_per_cl_unit <- days_per_unit(settings$value[settings$setting == cl_unit_code][1])
-  tf <- as.numeric(settings$value[settings$setting == tf_code][1])
-  cl <- as.numeric(settings$value[settings$setting == cl_code][1])
-  
-  floor((tf * days_per_tf_unit) / (cl * days_per_cl_unit))
+check_missing_colnames <- function(x, names) {
+  colnames(x)[which(!(names %in% colnames(x)))]
 }
 
-days_per_unit <- function(unit) {
-  switch(
-    unit,
-    "Days" = 1,
-    "Weeks" = 7,
-    "Months" = 365/12,
-    "Years" = 365
-  )
-}
 
 
 #' Sort Variables List
@@ -212,6 +183,13 @@ sort.heRovar_list <- function(x, ...) {
   as.heRovar_list(NextMethod())
 }
 
+parse_csl <- function(string) {
+  gsub('\\s', '', string) %>%
+    strsplit(',') %>%
+    flatten_chr()
+}
+
+
 #' Vectorized Switch Statement
 #' 
 #' @param x The condition statement
@@ -222,7 +200,15 @@ sort.heRovar_list <- function(x, ...) {
 #' 
 #' @export
 vswitch <- function(x, ...) {
-  tibble::tibble(...)[[x]]
+  args <- list(...)
+  opts <- names(args)
+  xMat <- matrix(rep(x, length(args)), nrow = length(x), ncol = length(args), byrow = T)
+  optsMat <- matrix(rep(opts, length(x)), nrow = length(x), ncol = length(args), byrow = T)
+  mat <- as.matrix(do.call(tibble, args))
+  if (nrow(mat) == 1) {
+    mat <- mat[rep(1, nrow(xMat)), ]
+  }
+  unname(mat[which(xMat == optsMat)])
 }
 
 is.empty <- function(x) {
@@ -267,4 +253,32 @@ resolve_tree_references <- function(calls) {
       })
     )
   )
+}
+
+has_st_dependency <- function(x, extras = NULL) {
+  any(x$depends %in% c(state_time_keywords, extras))
+}
+
+
+check_state_time <- function(vars, transitions, health_values, econ_values) {
+  # Identify which vars have references to state time
+  st_vars <- vars$name[map_lgl(vars$formula, ~has_st_dependency(.))]
+  
+  # Combine values & transitions, group by state, and identify
+  # references to state time or variables referencing state time
+  st_df <- select(transitions, from, formula) %>%
+    rename(state = from) %>%
+    rbind(
+      select(health_values, state, formula),
+      select(econ_values, state, formula)
+    ) %>%
+    group_by(state) %>%
+    do({
+      tibble(
+        state = .$state[1],
+        uses_st = any(map_lgl(.$formula, ~has_st_dependency(., extras = st_vars)))
+      )
+    })
+  
+  st_df
 }

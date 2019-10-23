@@ -2,8 +2,16 @@
 - Transition Matrices
 - State Values
 
+# Allow tmat to reference trace
+
+# Variable cycle length
+# Variable discount rates
+
 
 # Order of operations
+- Read in tables
+- Run scripts
+- Evaluate trees
 - Evaluate parameters
 - Evaluate initial values
 - Evaluate state values
@@ -14,3 +22,19 @@
 - Convert Values to Array
 - Calculate Trace
 - Calculate Values
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

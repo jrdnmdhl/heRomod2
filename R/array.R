@@ -45,6 +45,6 @@ arr_last_unique <- function(mat, dim_index) {
   diff_from_last <- apply(mat, dim_index, function(x) {
     all(x != last_mat)
   })
-  if (!any(diff_from_last)) return(Inf)
+  if (!any(diff_from_last)) return(1)
   max(which(diff_from_last))
 }

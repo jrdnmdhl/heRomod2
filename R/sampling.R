@@ -160,7 +160,7 @@ resample <- function(model, n, segments, corr = NULL) {
     dplyr::do({
       x <- .data
       seg_vars <- params_df %>%
-        dplyr::filter(is_in_segment(.data, x$strategy, x$group))
+        dplyr::filter(is_in_segment(segment, strat = strategy, grp = group))
       
       dplyr::select_(sampling_df, .dots = c('simulation', seg_vars$.id)) %>%
         magrittr::set_colnames(., c('simulation', seg_vars$name)) %>%

@@ -9,8 +9,13 @@
 #' @param env An environment of pre-existing values
 #'
 #' @export
-define_namespace <- function(df, env) {
-  define_object(df = df, env = env, class = 'namespace')
+define_namespace <- function(env, df, additional = null) {
+  ns <- list(df = df, env = rlang::env_clone(env))
+  for (nm in names(additional)) {
+    assign(nm, additional[[nm]], envir = ns$env)
+  }
+  class(ns) <- 'namespace'
+  ns
 }
 
 get_names <- function(ns, type = "all", keywords = T) {
@@ -33,31 +38,6 @@ get_names <- function(ns, type = "all", keywords = T) {
 
   res
 }
-
-create_namespace <- function(n_cycles, n_tunnels, cycle_length, env) {
-  
-  env$cycle_length_days <- cycle_length
-  env$cycle_length_weeks <- cycle_length / days_per_unit('Weeks')
-  env$cycle_length_months <- cycle_length / days_per_unit('Months')
-  env$cycle_length_years <- cycle_length / days_per_unit('Years')
-  
-  define_namespace(
-    df = tibble::tibble(
-      model_time = rep(seq_len(n_cycles), times = n_tunnels),
-      model_day = .data$model_time * cycle_length,
-      model_week = .data$model_day / days_per_unit('Weeks'),
-      model_month = .data$model_day / days_per_unit('Months'),
-      model_year = .data$model_day / days_per_unit('Years'),
-      state_time = rep(seq_len(n_tunnels), each = n_cycles),
-      state_day = .data$state_time * cycle_length,
-      state_week = .data$state_day / days_per_unit('Weeks'),
-      state_month = .data$state_day / days_per_unit('Months'),
-      state_year = .data$state_day / days_per_unit('Years')
-    ),
-    env = env
-  )
-}
-
 #' Clone a Namespace
 #' 
 #' Clones a namespace object.
