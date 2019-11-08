@@ -18,25 +18,25 @@ parse_states <- function(states, settings) {
   )
   
   # Parse initial probability formulas, calculate maximum tunnel states
-  parsed_states <- select(
-      states,
-      name,
-      display_name,
-      description,
-      initial_probability,
-      state_group,
-      share_state_time,
-      state_cycle_limit,
-      state_cycle_limit_unit
-    ) %>%
+  parsed_states <- states %>%
     mutate(
-      initial_probability = map(states$initial_probability, as.heRoFormula),
+      formula = map(initial_probability, as.heRoFormula),
       max_state_time = ceiling(
         days_per_unit(state_cycle_limit_unit, settings) * state_cycle_limit / get_cycle_length_days(settings)
       ),
       state_group = ifelse(is.na(state_group), paste0('.', name), state_group),
       share_state_time = ifelse(is.na(share_state_time), F, share_state_time)
-    )
+    ) %>%
+    select(
+      name,
+      display_name,
+      description,
+      formula,
+      state_group,
+      share_state_time,
+      max_state_time
+    ) %>%
+    sort_variables()
   
   # Construct Object & Return
   as.states(parsed_states)
@@ -47,7 +47,30 @@ check_states <- function(x) {
 }
 
 eval_states <- function(x, ns) {
-  
+  # Limit variables to first cycle
+  cloned_ns <- clone_namespace(ns)
+  cloned_ns$df <- cloned_ns$df[1, ]
+  eval_variables(x, cloned_ns, T)$df[ ,x$name]
+}
+
+expand_init_states <- function(x, expand) {
+  n_states_exp <- sum(expand$max_st)
+  init_mat <- matrix(numeric(n_states_exp), nrow = 1)
+  col_names <- character(n_states_exp)
+  index <- 1
+  for (i in colnames(x)) {
+    row <- expand[expand$state == i, ]
+    indices <- seq(from = index, to = index + row$max_st[1] - 1)
+    init_mat[1, index] <- x[[i]][1]
+    col_names[indices] <- expand_state_name(
+      rep(row$state[1], row$max_st[1]),
+      seq(row$max_st[1])
+    )
+    index <- max(indices) + 1
+  }
+  colnames(init_mat) <- col_names
+  print(init_mat)
+  init_mat
 }
 
 as.states <- function(x) {
@@ -59,4 +82,8 @@ as.states.states <- function(x) {
 as.states.data.frame <- function(x) {
   class(x) <- c('states', class(x))
   x
+}
+
+expand_state_name <- function(name, index) {
+  paste0(name, '.', index)
 }

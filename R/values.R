@@ -50,22 +50,20 @@ evaluate_values <- function(df, ns, simplify = F) {
     bind_rows()
 }
 
-evaluate_value_row <- function(df, ns, simplify = F) {
-  # Populate at dataframe with time, state
-  values_df <- ns$df
-  values_df$name <- df$name
-  values_df$state <- df$state
-  state_ns <- ns
-  state_ns$df <- values_df
-  values_df$value <- evaluate_formula(df$formula[[1]], state_ns)
-  if (simplify) {
-    # Transform to matrix to check state-time-dependency
-    val_mat <- lf_to_arr(values_df, c('cycle', 'state_cycle'), 'value')
-    values_df$max_st <- arr_last_unique(val_mat, 1)
-  } else {
-    values_df$max_st <- Inf
-  }
+values_to_vmat <- function(df, state_names) {
+  value_names <- setdiff(colnames(df), c('state', 'cycle', 'state_cycle', 'max_st'))
   
-  # Return
-  filter(values_df[ , c('name', 'state', 'cycle', 'state_cycle', 'value')], value > 0)
+  lf <-  df %>%
+    gather_("variable","value", value_names) %>%
+    mutate(e_state = factor(expand_state_name(state, state_cycle), levels = state_names))
+  mat <- lf_to_arr(lf, c('cycle', 'e_state', 'variable'), 'value')
+  dimnames(mat) <- list(
+    unique(df$cycle),
+    state_names,
+    value_names
+  )
+  
+  mat
+    
 }
+

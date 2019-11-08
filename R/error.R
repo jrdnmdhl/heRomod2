@@ -9,8 +9,8 @@ modify_error_msg <- function(x) {
   x <- gsub("Error in eval(x$expr, data, x$env): ", "", x, fixed = T)
   x <- gsub("Error: ", "", x, fixed = T)
   if (grepl('object.*not found', x)) {
-    name <- strsplit(strsplit(x, ': object ')[[1]][2], "'")[[1]][2]
-    x <- glue('Error, variable "{name}" not found.')
+    name <- strsplit(x, "'")[[1]][2]
+    x <- glue('Variable "{name}" not found.')
   }
   x
 }

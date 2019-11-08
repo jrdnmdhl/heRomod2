@@ -1,15 +1,23 @@
 context("Decision Trees")
 library(tibble)
 
+model <- system.file("models","checkimab", package="heRomod2") %>%
+  read_model() %>%
+  heRomod2:::parse_model()
+segment <- tibble(group = "male_age_lt_35", strategy = "chemo")
+cycles <- rep(seq_len(360), 12)
+rows <- length(cycles)
+ns <- heRomod2:::create_namespace(
+  model,
+  segment
+)
+
 test_that("Calculate conditional & unconditional probabilities", {
-  
-  # Create a namespace in which to evaluate variables
-  ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3)), new.env())
   
   # Make sure trees table is populated in namespace
   ns$env$.trees <- tribble(
-    ~tree, ~node,~tags, ~parent, ~formula,
-    'tree', 'had_event', 'event', NA, '0.15 + 0.005 * model_time',
+    ~name, ~node,~tags, ~parent, ~formula,
+    'tree', 'had_event', 'event', NA, '0.15 + 0.005 * cycle',
     'tree', 'had_surgery', 'event, surgery', 'had_event', '0.34',
     'tree', 'died_surgery', 'event, died, surgery', 'had_surgery', 'p_death_surgery',
     'tree', 'survived_surgery', 'event, survived, surgery', 'had_surgery', 'C',
@@ -40,33 +48,38 @@ test_that("Calculate conditional & unconditional probabilities", {
     'p_died_or_survived_and_event_given_surgery', 'p(((died %or% survived) %and% event) | surgery, tree)',
     'p_died_or_survived_and_surgery_given_event', 'p(((died %or% survived) %and% surgery) | event, tree)'
   )
-  var_list <- heRomod2:::define_variable_list(vars) %>%
-    append(define_decision_trees(ns), .) %>%
-    as.heRovar_list %>%
-    sort()
+  vars$strategy <- segment$strategy
+  vars$group <- segment$group
+  vars$display_name <- ''
+  vars$description <- ''
+  var_list <- heRomod2:::parse_variables(
+      vars,
+      segment,
+      trees = ns$env$.trees
+    )
   
   # Evaluate
-  var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
+  var_res <- heRomod2:::eval_variables(var_list, ns)
   plot_decision_tree(var_res['tree'])
   
   # Check results
-  expect_equal(var_res['p_event'], 0.15 + 0.005 * c(1,2,3))
+  expect_equal(var_res['p_event'], 0.15 + 0.005 * cycles)
   expect_equal(
     var_res['p_died'],
-    (0.15 + 0.005 * c(1,2,3)) * ((0.34 * 0.05) + ((1 - 0.34) * 0.15)) + (1 - (0.15 + 0.005 * c(1,2,3))) * 0.01
+    (0.15 + 0.005 * cycles) * ((0.34 * 0.05) + ((1 - 0.34) * 0.15)) + (1 - (0.15 + 0.005 * cycles)) * 0.01
   )
   expect_equal(
     1 - var_res['p_died'],
     var_res['p_survived']
   )
-  expect_equal(var_res['p_died_given_event'], rep((0.34 * 0.05) + ((1 - 0.34) * 0.15), 3))
+  expect_equal(var_res['p_died_given_event'], rep((0.34 * 0.05) + ((1 - 0.34) * 0.15), rows))
   expect_equal(
     var_res['p_event_given_died'],
-    ((0.15 + 0.005 * c(1,2,3)) * ((0.34 * 0.05) + ((1 - 0.34) * 0.15))) / ((0.15 + 0.005 * c(1,2,3)) * ((0.34 * 0.05) + ((1 - 0.34) * 0.15)) + (1 - (0.15 + 0.005 * c(1,2,3))) * 0.01)
+    ((0.15 + 0.005 * cycles) * ((0.34 * 0.05) + ((1 - 0.34) * 0.15))) / ((0.15 + 0.005 * cycles) * ((0.34 * 0.05) + ((1 - 0.34) * 0.15)) + (1 - (0.15 + 0.005 * cycles)) * 0.01)
   )
   expect_equal(
     var_res['p_died_or_surgery'],
-    (0.15 + 0.005 * c(1,2,3)) * (0.34 + ((1 - 0.34) * 0.15)) + (1 - (0.15 + 0.005 * c(1,2,3))) * 0.01
+    (0.15 + 0.005 * cycles) * (0.34 + ((1 - 0.34) * 0.15)) + (1 - (0.15 + 0.005 * cycles)) * 0.01
   )
   expect_equal(
     var_res['p_died_or_not_surgery'],
@@ -74,19 +87,19 @@ test_that("Calculate conditional & unconditional probabilities", {
   )
   expect_equal(
     var_res['p_died_and_surgery'],
-    (0.15 + 0.005 * c(1,2,3)) * 0.34 * 0.05
+    (0.15 + 0.005 * cycles) * 0.34 * 0.05
   )
   expect_equal(
     var_res['p_died_or_survived_and_had_event_given_surgery'],
-    rep(1, 3)
+    rep(1, rows)
   )
   expect_equal(
     var_res['p_died_or_survived_and_event_given_surgery'],
-    rep(1, 3)
+    rep(1, rows)
   )
   expect_equal(
     var_res['p_died_or_survived_and_surgery_given_event'],
-    rep(0.34, 3)
+    rep(0.34, rows)
   )
   
 })

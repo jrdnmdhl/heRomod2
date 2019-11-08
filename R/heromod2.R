@@ -21,6 +21,13 @@ heRo_keywords <- c("cycle_length_days", "cycle_length_weeks", "cycle_length_mont
                    "state_cycle_lag", "state_day_lag", "state_week_lag", "state_month_lag", "state_year_lag",
                     "group", "strategy", "simulation", "bc", "analysis_type", '.trees', 'class')
 
+heRo_vars_keywords <- c("cycle_length_days", "cycle_length_weeks", "cycle_length_months", "cycle_length_years",
+                        "cycle", "day", "week", "month", "year",
+                        "cycle_lag", "day_lag", "week_lag", "month_lag", "year_lag",
+                        "state_cycle", "state_day", "state_week", "state_month", "state_year",
+                        "state_cycle_lag", "state_day_lag", "state_week_lag", "state_month_lag", "state_year_lag",
+                        "group", "strategy")
+
 error_codes <- list(
   generic = '#ERR: ',
   invalid_expression = '#ERR: Invalid Expression'
@@ -53,6 +60,6 @@ tree_def_columns <- c('name', 'display_name', 'description', 'node', 'tags', 'pa
 # Columns that are required in a tree definition
 tree_def_columns <- c('node', 'tags', 'parent', 'formula')
 
-trans_markov_lf_columns <- c('from', 'to', 'formula')
+trans_markov_cols <- c('from', 'to', 'formula')
 
 . <- NULL

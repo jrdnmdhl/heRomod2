@@ -1,29 +1,49 @@
 context("Namespaces")
 library(tibble)
 
+
+
+model <- system.file("models","checkimab", package="heRomod2") %>%
+  read_model()
+
+model$trees <- NULL
+model$tables <- NULL
+model <- heRomod2:::parse_model(model)
+segment <- tibble(group = "male_age_lt_35", strategy = "chemo")
+cycles <- rep(seq_len(360), 12)
+rows <- length(cycles)
+ns <- heRomod2:::create_namespace(
+  model,
+  segment
+)
+
+
 # Need these for comparing names generated
 empty <- character(0)
 symdiff <- function(x, y) {
   setdiff( union(x, y), intersect(x, y))
 }
 
+# Evaluate some parameters to create a populated namespace
+vars <- tribble(
+  ~name, ~formula,
+  'x'  , 'y + 1',
+  'y'  , 'z + 2',
+  'z'  , '30',
+  'a'  , 'mtcars',
+  'b'  , 'lm(mpg~disp, data = a)',
+  'c'  , 'predict(b, newdata = data.frame(disp = x))',
+  'i'  , 'cycle + c'
+)
+
+vars$display_name <- ''
+vars$description <- ''
+vars$strategy <- segment$strategy
+vars$group <- segment$group
+var_list <- heRomod2:::parse_variables(vars, segment)
+
 test_that("Getting Names", {
-  
-  # Evaluate some parameters to create a populated namespace
-  vars <- tribble(
-    ~name, ~formula,
-    'x'  , 'y + 1',
-    'y'  , 'z + 2',
-    'z'  , '30',
-    'a'  , 'mtcars',
-    'b'  , 'lm(mpg~disp, data = a)',
-    'c'  , 'predict(b, newdata = data.frame(disp = x))',
-    'i'  , 'model_time + c'
-  )
-  var_list <- heRomod2:::define_variable_list(vars) %>%
-    sort()
-  ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3), state_time = c(1,1,1)), new.env())
-  var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
+  var_res <- heRomod2:::eval_variables(var_list, ns)
   
   # Get names for all variables
   all_names <- heRomod2:::get_names(var_res, type = 'all', keywords = F)
@@ -31,7 +51,7 @@ test_that("Getting Names", {
   
   # Include keywords
   all_names_kw <- heRomod2:::get_names(var_res, type = 'all', keywords = T)
-  expect_equal(symdiff(all_names_kw, c('model_time', 'state_time', vars$name)), empty)
+  expect_equal(symdiff(all_names_kw, c(heRomod2:::heRo_vars_keywords, vars$name)), empty)
   
   # Get names for all df vars
   df_names <- heRomod2:::get_names(var_res, type = 'df', keywords = F)
@@ -52,44 +72,27 @@ test_that("Getting Names", {
 test_that("Cloning", {
   
   # Evaluate some parameters to create a populated namespace
-  vars <- tribble(
-    ~name, ~formula,
-    'x'  , 'y + 1',
-    'y'  , 'z + 2',
-    'z'  , '30',
-    'a'  , 'mtcars',
-    'b'  , 'lm(mpg~disp, data = a)',
-    'c'  , 'predict(b, newdata = data.frame(disp = x))',
-    'i'  , 'model_time + c'
-  )
-  var_list <- heRomod2:::define_variable_list(vars) %>%
-    sort()
-  ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3)), new.env())
-  var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
-  clone <- clone_namespace(var_res)
+  var_res <- heRomod2:::eval_variables(var_list, ns)
+  clone <- heRomod2:::clone_namespace(var_res)
   
   expect_equal(var_res$df, clone$df)
-  expect_equal(as.list(var_res$env), as.list(clone$env))
+  
+  names(var_res$env) %>%
+    magrittr::set_names(.,.) %>%
+    as.list() %>%
+    purrr::map(function(x) { 
+      expect_equal(
+        eval(parse(text = x), envir = var_res$env),
+        eval(parse(text = x), envir = clone$env)
+      )
+    })
   
 })
 
 test_that("Summary", {
   
-  # Evaluate some parameters to create a populated namespace
-  vars <- tribble(
-    ~name, ~formula,
-    'x'  , 'y + 1',
-    'y'  , 'z + 2',
-    'z'  , '30',
-    'a'  , 'mtcars',
-    'b'  , 'lm(mpg~disp, data = a)',
-    'c'  , 'predict(b, newdata = data.frame(disp = x))',
-    'i'  , 'model_time + c'
-  )
-  var_list <- heRomod2:::define_variable_list(vars) %>%
-    sort()
-  ns <- heRomod2:::define_namespace(data.frame(model_time = c(1,2,3), state_time = c(1,1,1)), new.env())
-  var_res <- heRomod2:::evaluate_variable_list(var_list, ns)
+ 
+  var_res <- heRomod2:::eval_variables(var_list, ns)
   
   exported <- summary(var_res)
   

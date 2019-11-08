@@ -86,7 +86,7 @@ get_segments <- function(model) {
 }
 
 check_missing_colnames <- function(x, names) {
-  colnames(x)[which(!(names %in% colnames(x)))]
+  names[which(!(names %in% colnames(x)))]
 }
 
 
@@ -281,4 +281,12 @@ check_state_time <- function(vars, transitions, health_values, econ_values) {
     })
   
   st_df
+}
+
+parse_settings <- function(settings) {
+  # Convert the settings table into a named
+  # list.
+  settings$value %>%
+    as.list() %>%
+    setNames(settings$setting)
 }

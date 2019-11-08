@@ -1,6 +1,6 @@
 # Parses a variables input table and optional trees table
 # and produces an object of class uneval_variables
-parse_variables <- function(x, segment, trees = NULL) {
+parse_variables <- function(x, segment, trees = NULL, formula_column = 'formula') {
   
   # Filter to only variables in this segment
   df <- filter(
@@ -17,8 +17,8 @@ parse_variables <- function(x, segment, trees = NULL) {
   
   # Parse formulas, combine with trees, and sort
   vars <- df %>%
-    select(name, display_name, description, formula) %>%
-    mutate(formula = map(df$formula, as.heRoFormula)) %>%
+    select(name, display_name, description, !!enquo(formula_column)) %>%
+    mutate(!!formula_column := map(!!sym(formula_column), as.heRoFormula)) %>%
     rbind(tree_vars) %>%
     sort_variables()
   
@@ -42,7 +42,7 @@ sort_variables <- function(x, extra_vars = NULL) {
   # Extract the variable names referenced in each variable's
   # formula
   var_list <-  purrr::map(x$formula, function(y) {
-      vars <- c(y$formula[[1]]$depends, y$formula[[1]]$after)
+      vars <- c(y$depends, y$after)
       vars[vars %in% par_names]
     }) %>%
     set_names(x$name)
@@ -124,11 +124,19 @@ sort_variables <- function(x, extra_vars = NULL) {
 # Evaluate a variables object
 eval_variables <- function(x, ns, df_only = F) {
   
+  # Keep list of parameters that generated errors
+  error_params <- c()
+  
   # Iterate over each parameter and its name
   walk2(x$name, x$formula, function(name, value) {
     
     # Evaluate it
     res <- evaluate_formula(value, ns)
+    
+    # Check if the object was an error
+    if (class(res) == 'heRo_error') {
+      error_params <<- append(error_params, name)
+    }
     
     # Determine whether result is a vector or object parameter
     vector_type <- is.vector(res) && !is.list(res)
@@ -140,6 +148,14 @@ eval_variables <- function(x, ns, df_only = F) {
       assign(name, res, envir = ns$env)
     }
   })
+  
+  if (length(error_params) > 0) {
+    warning(
+      'Error in evaluation of parameters: ',
+      paste0('"', error_params, '"', collapse = ', '),
+      "."
+    )
+  }
   
   return(ns)
 }

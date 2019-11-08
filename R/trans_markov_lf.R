@@ -1,36 +1,18 @@
-parse_trans_markov_lf <- function(x, states, extra_vars) {
-  
-  # Get state names
-  state_names <- states$names
-  
-  # Check transitions definition
-  check_lf_markov_trans(x, state_names)
 
-  # Construct the transitions object
-  x$formula <- map(x$formula, as.heRoFormula)
-  x$name <- paste0(x$from, '→', x$to)
-  res <- sort_variables(x, extra_vars) %>%
-    select(name, from, to, formula) %>%
-    left_join(
-      transmute(
-        states, name = name,
-        from_state_group = state_group
-      ),
-      by = c('from' = 'name')
-    ) %>%
-    left_join(
-      transmute(
-        states,
-        name = name,
-        to_state_group = state_group,
-        share_state_time = share_state_time
-      ),
-      by = c('to' = 'name')
-    )
 
-  # Return result
-  as.lf_markov_trans(res)
+
+
+
+# Helpers --------------------------------------------------------------
+
+limit_state_time <- function(df, state_time_limits) {
+  # Join data with state time limit
+  left_join(df, state_time_limits, by = "state") %>%
+    # Remove any entries that exceed limit
+    filter(state_cycle <= st_limit)
 }
+
+
 
 #' Evaluate a Longform Transition Matrix
 eval_trans_markov_lf <- function(df, ns, simplify = FALSE) {
@@ -81,36 +63,28 @@ eval_trans_markov_lf <- function(df, ns, simplify = FALSE) {
     bind_rows()
 }
 
-limit_state_time <- function(df, state_time_limits) {
-  # Join data with state time limit
-  left_join(df, state_time_limits, by = "state") %>%
-    # Remove any entries that exceed limit
-    filter(state_cycle <= st_limit)
-}
 
 #' Convert Lonform Transitions Table to Matrix
-#' @export
-lf_to_matrix <- function(df) {
+lf_to_tmat <- function(df) {
   df <- df %>%
     group_by(.data$from) %>%
     mutate(.max_st = max(.data$state_cycle)) %>%
     ungroup() %>%
     mutate(
       .end = .data$state_cycle == .data$.max_st,
-      .from_e = paste0(.data$from, '.', .data$state_cycle)
+      .from_e = expand_state_name(.data$from, .data$state_cycle)
     )
   lv_sg_i <- (!df$share_state_time) | (df$from_state_group != df$to_state_group)
   lv_i <- df$from != df$to & lv_sg_i
   ls_i <- df$.end & !lv_i
   nx_i <- !(lv_i | ls_i)
   df$.to_e <- NA
-  df$.to_e[lv_i] <- paste0(df$to[lv_i], '.1')
-  df$.to_e[ls_i] <- paste0(df$to[ls_i], '.', df$.max_st[ls_i])
-  df$.to_e[nx_i] <- paste0(df$to[nx_i], '.', (df$state_cycle[nx_i] + 1))
+  df$.to_e[lv_i] <- expand_state_name(df$to[lv_i], 1)
+  df$.to_e[ls_i] <- expand_state_name(df$to[ls_i], df$.max_st[ls_i])
+  df$.to_e[nx_i] <- expand_state_name(df$to[nx_i], df$state_cycle[nx_i] + 1)
   e_state_names <- unique(df$.from_e)
   df$to <- factor(df$.to_e, levels = e_state_names)
   df$from <- factor(df$.from_e, levels  = e_state_names)
-  # Return
   df <- df[, c('cycle', 'state_cycle', 'from', 'to', 'value')]
   mat <- lf_to_arr(df, c('cycle', 'from', 'to'), 'value')
   dimnames(mat) <- list(
@@ -160,6 +134,10 @@ calc_compl_probs <- function(mat) {
   valC <- 1 - rowSums(mat, dims = 2)[which(posC, arr.ind = TRUE)[, -3]] 
   mat[posC] <- valC
   mat
+}
+
+check_matrix_probs <- function(mat) {
+  
 }
 
 check_lf_markov_trans <- function(x, state_names) {

@@ -1,3 +1,18 @@
+create_namespace <- function(model, segment) {
+  
+  # Calculate cycle lengths and times in days/weeks/months/years
+  # for each model cycle. 
+  cl_vars <- cl_variables(model$settings)
+  time_vars <- time_variables(model$settings, model$states)
+  
+  # Create a "namespace" which will contain evaluated
+  # variables so that they can be referenced.
+  ns <- define_namespace(model$env, time_vars, cl_vars) %>%
+    update_segment_ns(segment)
+  
+  ns
+}
+
 #' Define a Namespace Object
 #'
 #' Creates a new namespace object which can be used
@@ -9,7 +24,7 @@
 #' @param env An environment of pre-existing values
 #'
 #' @export
-define_namespace <- function(env, df, additional = null) {
+define_namespace <- function(env, df, additional = NULL) {
   ns <- list(df = df, env = rlang::env_clone(env))
   for (nm in names(additional)) {
     assign(nm, additional[[nm]], envir = ns$env)
@@ -73,8 +88,8 @@ summary.namespace <- function(object, ...) {
       ) %>%
       select(
         name,
-        .data$model_time,
-        .data$state_time,
+        .data$cycle,
+        .data$state_cycle,
         .data$value,
         .data$print,
         .data$summary
@@ -82,10 +97,10 @@ summary.namespace <- function(object, ...) {
   } else {
     res_df <- data.frame()
   }
-  res_env <- data_frame(
+  res_env <- tibble(
     name = env_names,
-    model_time = NA,
-    state_time = NA,
+    cycle = NA,
+    state_cycle = NA,
     value = NA,
     summary = NA,
     print = NA
@@ -100,8 +115,8 @@ summary.namespace <- function(object, ...) {
   res_env <- select(
     res_env,
     .data$name,
-    .data$model_time,
-    .data$state_time,
+    .data$cycle,
+    .data$state_cycle,
     .data$value,
     .data$print,
     .data$summary

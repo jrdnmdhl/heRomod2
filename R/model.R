@@ -56,10 +56,7 @@ parse_model <- function(model, ...) {
   }
 
   # Reformat settings as a list
-  model$settings <- setNames(
-    as.list(model$settings$value),
-    model$settings$setting
-  )
+  model$settings <- parse_settings(model$settings)
 
   # Set the class of the object based on model type
   class(model) <- c(model$settings$model_type, 'list')

@@ -66,7 +66,10 @@ convert_time <- function(x, from, to, settings) {
 time_variables <- function(settings, states) {
   n_cycles <- get_n_cycles(settings)
   cl <- get_cycle_length_days(settings)
-  st_days_max <- max(days_per_unit(states$state_cycle_limit_unit, settings) * states$state_cycle_limit)
+  st_days_max <- max(
+    days_per_unit(states$state_cycle_limit_unit, settings) *
+      as.numeric(states$state_cycle_limit)
+  )
   st_cycles <- min(n_cycles, max(1, floor(st_days_max / cl)))
   
   # Create a table of model & state time variables
@@ -106,3 +109,4 @@ cl_variables <- function(settings) {
     cycle_length_years = convert_time(cycle_length_days, from = 'Days', to = 'Years', settings)
   )
 }
+

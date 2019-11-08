@@ -153,7 +153,7 @@ resample <- function(model, n, segments, corr = NULL) {
   }
   
   # Make a data.frame with results
-  sampling_df <- do.call(data_frame, cols)
+  sampling_df <- do.call(tibble, cols)
   
   # Create Segments
   dplyr::rowwise(segments) %>%
