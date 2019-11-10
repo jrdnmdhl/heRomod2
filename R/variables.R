@@ -1,16 +1,24 @@
 # Parses a variables input table and optional trees table
 # and produces an object of class uneval_variables
-parse_variables <- function(x, segment, trees = NULL, formula_column = 'formula') {
+parse_variables <- function(x, segment, trees = NULL, formula_column = 'formula', context = 'Variables') {
+  
+  # Check that all necessary columns are present
+  missing_cols <- check_missing_colnames(x, vars_def_columns)
+  if (length(missing_cols) > 0) {
+    missing_msg <- err_name_string(missing_cols)
+    stop(context, ' definition was missing columns: ', missing_msg, '.', call. = F)
+  }
   
   # Filter to only variables in this segment
-  df <- filter(
-    x,
-    is_in_segment(segment, strat = strategy, grp = group),
-    !.data$name %in% names(segment)
-  )
+  df <- x %>%
+    mutate_all(~as.character(.)) %>%
+    filter(
+      is_in_segment(segment, strat = strategy, grp = group),
+      !.data$name %in% names(segment)
+    )
   
   # Check that variables definition is valid
-  check_variables_df(df)
+  check_variables_df(df, context = context)
   
   # Parse decision tree variables
   tree_vars <- parse_tree_vars(trees)
@@ -20,7 +28,17 @@ parse_variables <- function(x, segment, trees = NULL, formula_column = 'formula'
     select(name, display_name, description, !!enquo(formula_column)) %>%
     mutate(!!formula_column := map(!!sym(formula_column), as.heRoFormula)) %>%
     rbind(tree_vars) %>%
-    sort_variables()
+    {try({sort_variables(.)}, silent = T)}
+  
+  if (class(vars)[1] == 'try-error') {
+    stop(
+      context,
+      ' definition contained circular references in variables: ',
+      strsplit(gsub('\n','', vars), ': ')[[1]][3],
+      '.',
+      call. = F
+    )
+  }
   
   # Construct Object & Return
   as.variables(vars)
@@ -109,7 +127,8 @@ sort_variables <- function(x, extra_vars = NULL) {
     if (length(to_remove) == 0) {
       # If we didn't find anything to move to the ordered list,
       # throw a circular reference error
-      stop('Circular reference in parameters', call. = F)
+      err_txt <- err_name_string(names(unordered))
+      stop('Circular reference detected: ', err_txt)
     } else {
       # Otherwise, remove from the unordered list the variables
       # that were appended to the ordered list
@@ -122,7 +141,7 @@ sort_variables <- function(x, extra_vars = NULL) {
 }
 
 # Evaluate a variables object
-eval_variables <- function(x, ns, df_only = F) {
+eval_variables <- function(x, ns, df_only = F, context = 'variables') {
   
   # Keep list of parameters that generated errors
   error_params <- c()
@@ -151,8 +170,8 @@ eval_variables <- function(x, ns, df_only = F) {
   
   if (length(error_params) > 0) {
     warning(
-      'Error in evaluation of parameters: ',
-      paste0('"', error_params, '"', collapse = ', '),
+      'Error in evaluation of ', context, ': ',
+      err_name_string(error_params),
       "."
     )
   }
@@ -161,35 +180,29 @@ eval_variables <- function(x, ns, df_only = F) {
 }
 
 # Checks that a variables definition table is valid
-check_variables_df <- function(x) {
+check_variables_df <- function(x, context = "Variables") {
   
   error_msg = ''
-  
-  # Check that all necessary columns are present
-  missing_cols <- check_missing_colnames(x, vars_def_columns)
-  if (length(missing_cols) > 0) {
-    plural <- if (length(missing_cols) > 1) 's' else ''
-    missing_msg <- paste(missing_cols, collapse = ', ')
-    error_msg <- glue('Variables definition was missing column{plural}: {missing_msg}.')
-  }
   
   # Check that there are no duplicate names
   dupe <- duplicated(x$name)
   if (any(dupe)) {
     dupe_names <- unique(x$name[dupe])
-    plural <- if (length(dupe_names) > 1) 's' else ''
-    dupe_msg <- paste(dupe_names, collapse = ', ')
-    error_msg <- glue('Variables definition contained invalid variable name{plural}: {dupe_msg}.\nName already used.')
+    dupe_msg <- err_name_string(dupe_names)
+    error_msg <- paste0(context, ' definition contained duplicate names for variables: ', dupe_msg, '.')
   }
   
   # Check that variable names are valid
-  checked_names <- make.names(x$name)
-  invalid <- checked_names != x$name
+  invalid <- !is_valid_name(x$name)
   if (any(invalid)) {
     invalid_names <- x$name[invalid]
-    plural <- if (sum(invalid) > 1) 's' else ''
-    invalid_name_msg <- paste(invalid_names, collapse = ', ')
-    error_msg <- glue('Variables definition contained invalid variable name{plural}: {invalid_name_msg}.\nVariable names must follow rules of R syntax.')
+    invalid_name_msg <- err_name_string(invalid_names)
+    error_msg <- paste0(
+      context,
+      ' definition contained invalid names for variables: ',
+      invalid_name_msg,
+      '. Names must start with a letter and contain only letters, numbers, and underscores.'
+    )
   }
   
   # Check that no reserved names are used
@@ -197,28 +210,13 @@ check_variables_df <- function(x) {
   if (any(used_reserved)) {
     reserved_index <- which(used_reserved)
     reserved_names <- x$name[reserved_index]
-    plural <- if (sum(used_reserved) > 1) 's' else ''
-    reserved_msg <- paste(reserved_names, collapse = ', ')
-    error_msg <- glue('Variables definition contained invalid variable name{plural}: {reserved_msg}.\nName{plural} reserved for internal use.')
-  }
-  
-  # Check that name does not start with a period
-  period <- substr(x$name, 1, 1) == '.'
-  if (any(period)) {
-    period_index <- which(period)
-    period_names <- x$name[period_index]
-    plural <- if (sum(period) > 1) 's' else ''
-    period_msg <- paste(period_names, collapse = ', ')
-    error_msg <- glue('Variables definition contained invalid variable name{plural}: {period_msg}.\nNames starting with a period reserved for internal use.')
-  }
-  
-  # Check that formulas are not blank
-  blank_index <- which(any(x$formula == '' | is.na(x$formula)))
-  if (length(blank_index) > 0) {
-    plural <- if (length(blank_index) > 1) 's' else ''
-    blank_names <- x$name[blank_index]
-    blank_msg <- paste(blank_names, collapse = ', ')
-    error_msg <- glue('Variables definition contained invalid variable name{plural}: {blank_msg}.')
+    reserved_msg <- err_name_string(reserved_names)
+    error_msg <- paste0(
+      context,
+      ' definition contained names reserved for keywords for variables: ',
+      reserved_msg,
+      '.'
+    )
   }
   
   if (error_msg != '') stop(error_msg, call. = F)

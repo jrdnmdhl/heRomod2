@@ -150,7 +150,8 @@ as.heRoFormula.lazy <- function(x) {
   list_obj <- list(
     text = as.character(x)[1],
     lazy = x,
-    vars = all.vars(x$expr, functions = T)
+    vars = all.vars(x$expr, functions = T),
+    after = ''
   )
   as.heRoFormula(list_obj)
 }

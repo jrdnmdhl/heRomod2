@@ -1,3 +1,7 @@
+USE DATA.TREE to RENDER DECISION TREES
+CALCULATE EXPECTED VALUES OF TREES
+
+
 # Place where state_time can be used
 - Transition Matrices
 - State Values

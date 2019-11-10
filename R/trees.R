@@ -3,6 +3,10 @@ parse_tree_vars <- function(trees) {
   
   # Make and return a variables list containing the decision trees
   if (!is.null(trees)) {
+    
+    # Check that tree specification is valid
+    check_trees_df(trees)
+    
     unique(trees$name) %>%
       set_names(.) %>%
       map(function(x) {
@@ -62,99 +66,71 @@ parse_tree_vars <- function(trees) {
 
 check_trees_df <- function(trees) {
   
-}
-
-#' Define a decision Tree
-#' 
-#' @param trees a data.frame representing the decision trees.
-#' 
-#' @export
-define_decision_trees <- function(trees) {
-  
-  # Make and return a variables list containing the decision trees
-  if (!is.null(trees)) {
-    unique(trees$name) %>%
-      set_names(.) %>%
-      map(function(x) {
-        # Subset the master tree list to the entries for the given tree.
-        tree_df <- filter(trees, .data$name == x)
-        
-        # Extract the dependencies for each node
-        vars_by_node <- tree_df %>%
-          rowwise() %>%
-          group_split() %>%
-          set_names(tree_df$node) %>%
-          map(function(y) {
-            vars <- all.vars(parse(text = y$formula), functions = T)
-            # If a node variable references C, effectively its dependencies include
-            # the dependencies of all other nodes at with the same parent in the tree.
-            if ('C' %in% vars) {
-              vars <- filter(tree_df, .data$parent == y$parent) %>%
-                .$formula %>%
-                map(~all.vars(parse(text = .), functions = T)) %>%
-                flatten_chr() %>%
-                unique()
-            }
-            list(
-              node = y$node,
-              tags = c(y$node, parse_csl(y$tags)),
-              depends = vars
-            )
-          })
-        
-        # Collapse to a character vector
-        vars <- unique(flatten_chr(map(vars_by_node, ~.$depends)))
-        
-        # Define a variable which will create the decision tree object.
-        hero_var <- define_variable(paste0('decision_tree(.trees, "', x, '")'))
-        
-        # Add the variables from the tree itself to the 'after' field to ensure the
-        # tree is evaluated after all variables referenced by it
-        hero_var$after <- vars
-        
-        # Add the list of dependencies by node so that calls that references nodes can
-        # inherit those dependencies
-        hero_var$node_depends <- vars_by_node
-  
-        # Return the variable
-        hero_var
-      }) %>%
-      as.heRovar_list
-  } else {
-    list()
-  }
-}
-check_tree_df <- function(df, name) {
-  
   # Check that it has the right columns
-  tree_colnames <- colnames(df)
+  tree_colnames <- colnames(trees)
   missing <- setdiff(tree_def_columns, tree_colnames)
   if (length(missing) != 0) {
-    missing_str <- paste(missing, collapse = ', ')
-    error_msg <- glue('Error in tree "{name}", missing columns: {missing_str}.')
+    missing_str <- err_name_string(missing)
+    error_msg <- paste0(
+      'Error in decision tree specification, missing columns: ',
+      missing_str,
+      '.'
+    )
     stop(error_msg, call. = F)
   }
+  
+  group_by(trees, name) %>%
+    group_split() %>%
+    map(check_tree_df)
+}
+
+check_tree_df <- function(df) {
   
   # Extract the node names
   node_names <- df$node
   
   # Check that node names are unique
-  if (length(node_names) != length(unique(node_names))) {
-    error_msg <- glue('Error in tree "{name}", node names must be unique.')
+  dupes <- duplicated(node_names)
+  if (any(dupes)) {
+    dupes_msg <- err_name_string(unique(node_names[dupes]))
+    error_msg <- paste0(
+      'Error in decision tree specification, tree "',
+      df$name[1],
+      '" contained duplicate node names: ',
+      dupes_msg,
+      '.'
+    )
     stop(error_msg, call. = F)
   }
   
   # Extract the tag names
-  tag_names <- tryCatch(parse_csl(df$tags), err = function(e) {
-    error_msg <- glue('Error in tree "{name}", tags field must be comma-separated list.')
+  tag_names_list <- parse_csl(df$tags, flatten = F)
+  bad_tags <- map_lgl(tag_names_list, function(x) any(!(is.na(x) | is_valid_name(x))))
+  if (any(bad_tags)) {
+    bad_nodes <- node_names[bad_tags]
+    error_msg <- paste0(
+      'Error in decision tree specification, tree "',
+      df$name[1],
+      '" contained invalid tag names for nodes: ',
+      err_name_string(bad_nodes),
+      ". Tag names must be provided in a comma-separated list, start with a letter and contain only letters, numbers, and underscores."
+    )
     stop(error_msg, call. = F)
-  })
+  }
+  
+  tag_names <- flatten_chr(tag_names_list)
   
   # Check for overlap between tag and node names
   intersection <- intersect(tag_names, node_names)
   if (length(intersection) != 0) {
-    inter_str <- paste(intersection, collapse = ', ')
-    error_msg <- glue('Error in tree "{name}", node names {inter_str} may not appear in tags list')
+    inter_str <- err_name_string(intersection)
+    error_msg <- paste0(
+      'Error in decision tree "',
+      df$name[1],
+      '", tag names were duplicates of node names: ',
+      inter_str,
+      '.'
+    )
     stop(error_msg, call. = F)
   }
   
@@ -165,9 +141,8 @@ decision_tree <- function(df, name) {
   
   the_env <- parent.frame()
   
-  # Pull out tree from trees df and check it
+  # Pull out tree from trees df
   tree_df <- filter(df, .data$name == name)
-  check_tree_df(tree_df, name)
   tree_df$parent <- ifelse(is.na(tree_df$parent), '', tree_df$parent)
   
   parent_names <- unique(tree_df$parent)
@@ -190,7 +165,7 @@ decision_tree <- function(df, name) {
       c_index <- mat == -pi
       mat[c_index] <- 0
       if (any(rowSums(c_index) > 1)) {
-        error_msg <- glue('Error in tree "{name}", "C" may be used only once per level.')
+        error_msg <- paste0('Error in calculating complementary probabilities, "C" may be used only once per level.')
         stop(error_msg, call. = F)
       }
       mat[c_index] <- 1 - rowSums(mat)[which(c_index, arr.ind = TRUE)[, -2]] 
