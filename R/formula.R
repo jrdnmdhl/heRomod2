@@ -141,17 +141,3 @@ as.heRoFormula.list <- function(x) {
   class(x) <- c('heRoFormula', 'list')
   x
 }
-
-# lazy => heRoFormula
-#' @export
-as.heRoFormula.lazy <- function(x) {
-  # Pull the necessary info from lazy object into list, then convert to
-  # heRoFormula.
-  list_obj <- list(
-    text = as.character(x)[1],
-    lazy = x,
-    vars = all.vars(x$expr, functions = T),
-    after = ''
-  )
-  as.heRoFormula(list_obj)
-}

@@ -69,7 +69,6 @@ expand_init_states <- function(x, expand) {
     index <- max(indices) + 1
   }
   colnames(init_mat) <- col_names
-  print(init_mat)
   init_mat
 }
 

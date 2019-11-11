@@ -109,99 +109,6 @@ is_in_segment <- function(segment, strat = NULL, grp = NULL, include_globals = T
   (is_my_strat | not_strat_spec) & (is_my_group | not_group_spec)
 }
 
-
-#' Sort Variables List
-#'
-#' Sorts a heRovar_list object in order to solve issues of dependency
-#' resolution and identify any circular references.
-#'
-#' @param x The heRovar_list object to be sorted
-#' @param ... Unused variables to match sort call signature
-#'
-#' @export
-sort.heRovar_list <- function(x, ...) {
-  
-  # Extract variable names
-  par_names <- names(x)
-  
-  # Extract the names referenced in each variable's
-  # formula
-  var_list <- purrr::map(x, function(y) {
-    vars <- c(y$depends, y$after)
-    vars[vars %in% par_names]
-  })
-  
-  # Define the lists of ordered and unordered variables
-  ordered <- c()
-  unordered <- var_list
-  
-  # While we still have variables in the unordered list...
-  while (length(unordered) > 0) {
-    
-    # Define a vector which will hold the indices of each
-    # variable to be moved to the ordered list
-    to_remove <- c()
-    
-    # Loop through each unordered variable
-    for (i in seq_len(length(unordered))) {
-      
-      # If all the variables its formula references are in the ordered
-      # list then it can be added to ordered list.
-      if (all(unordered[[i]] %in% ordered)) {
-        
-        # Append it to the list of ordered variables
-        ordered <- c(ordered, names(unordered)[i])
-        
-        # Get current variable
-        current_var <-  names(unordered)[i]
-        
-        # Extract any decision tree probability calls
-        p_calls <- extract_func_calls(x[[current_var]]$lazy$expr, 'p')
-        tree_deps <- map(p_calls, function(y) {
-          referenced_nodes <- x[[y$arg2]]$node_depends %>%
-            keep(~any(.$tags %in% y$arg1)) %>%
-            map(~.$depends) %>%
-            flatten_chr()
-        }) %>% flatten_chr()
-        
-        # Assemble first-order depencies
-        fo_deps <- unique(c(x[[current_var]]$depends, tree_deps))
-        
-        # Add second+ order dependencies to variable
-        x[[current_var]]$depends <- x %>%
-          .[fo_deps] %>%
-          lapply(function(x) x$depends) %>%
-          discard(is.null) %>%
-          flatten_chr(.) %>%
-          union(fo_deps)
-        
-        # and mark it  for removal
-        to_remove <- c(to_remove, i)
-      }
-    }
-    
-    if (length(to_remove) == 0) {
-      # If we didn't find anything to move to the ordered list,
-      # throw a circular reference error
-      stop('Circular reference in parameters', call. = F)
-    } else {
-      # Otherwise, remove from the unordered list the variables
-      # that were appended to the ordered list
-      unordered <- unordered[-to_remove]
-    }
-  }
-  
-  # Sort the variables list according to the new order
-  res <- x[ordered]
-  res
-  
-}
-
-#' @export
-`[.heRovar_list`  <- function(x, i, ...) {
-  as.heRovar_list(NextMethod())
-}
-
 parse_csl <- function(string, flatten = T) {
   gsub('\\s', '', string) %>%
     strsplit('[,\\s]+', perl = T) %>%
@@ -262,16 +169,6 @@ extract_func_calls <- function(expr, funcs) {
   }
   
   ret
-}
-
-resolve_tree_references <- function(calls) {
-  unique(
-      flatten_chr(
-      map(calls, function(x) {
-        '.trees.' %&% x$arg2[[1]] %&% '.' %&% x$arg1
-      })
-    )
-  )
 }
 
 has_st_dependency <- function(x, extras = NULL) {

@@ -19,3 +19,8 @@ modify_error_msg <- function(x) {
 is_error <- function(x) {
   'heRo_error' %in% class(x)
 }
+
+#' @export
+print.heRo_error <- function(x, ...) {
+  print(glue("Error: {x$message}"))
+}
