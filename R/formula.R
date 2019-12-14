@@ -25,6 +25,7 @@ define_formula <- function(string) {
       ),
       err = tryExpr,
       depends = '',
+      fo_depends = '',
       after = ''
     )
   } else {
@@ -33,6 +34,7 @@ define_formula <- function(string) {
       text = string,
       lazy = tryExpr,
       depends = all.vars(tryExpr$expr, functions = T),
+      fo_depends = all.vars(tryExpr$expr, functions = T),
       after = ''
     )
   }

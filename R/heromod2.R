@@ -52,7 +52,7 @@ state_time_keywords <- c('state_cycle', 'state_day', 'state_week',
                          'state_month', 'state_year')
 
 # Columns that are required in a variables definition
-vars_def_columns <- c('name', 'display_name',	'description', 'formula', 'strategy', 'group')
+vars_def_columns <- c('name', 'display_name',	'description')
 
 # Columns that are required in trees definition
 tree_def_columns <- c('name', 'node', 'tags', 'parent', 'formula')

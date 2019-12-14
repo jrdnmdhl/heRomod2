@@ -1,9 +1,10 @@
 # Parses a variables input table and optional trees table
 # and produces an object of class uneval_variables
-parse_variables <- function(x, segment, trees = NULL, formula_column = 'formula', context = 'Variables') {
-  
+parse_seg_variables <- function(x, segment = NULL, trees = NULL,
+                                formula_column = 'formula',
+                                context = 'Variables') {
   # Check that all necessary columns are present
-  missing_cols <- check_missing_colnames(x, vars_def_columns)
+  missing_cols <- check_missing_colnames(x, c(vars_def_columns, formula_column, strat_var_code, group_var_code))
   if (length(missing_cols) > 0) {
     missing_msg <- err_name_string(missing_cols)
     stop(context, ' definition was missing columns: ', missing_msg, '.', call. = F)
@@ -15,6 +16,10 @@ parse_variables <- function(x, segment, trees = NULL, formula_column = 'formula'
     filter(
       is_in_segment(segment, strat = strategy, grp = group),
       !.data$name %in% names(segment)
+    ) %>%
+    mutate(
+      .is_ss = !(is.na(strategy) | strategy == '' | is.null(strategy)),
+      .is_gs = !(is.na(group) | group == ''  | is.null(group))
     )
   
   # Check that variables definition is valid
@@ -24,10 +29,37 @@ parse_variables <- function(x, segment, trees = NULL, formula_column = 'formula'
   tree_vars <- parse_tree_vars(trees)
   
   # Parse formulas, combine with trees, and sort
-  vars <- df %>%
+  parse_variables(df, formula_column, context, tree_vars)
+}
+
+parse_variables <- function(x, formula_column = 'formula', context = 'Variables', extras = NULL) {
+  # Check that all necessary columns are present
+  missing_cols <- check_missing_colnames(x, c(vars_def_columns, formula_column))
+  if (length(missing_cols) > 0) {
+    missing_msg <- err_name_string(missing_cols)
+    stop(context, ' definition was missing columns: ', missing_msg, '.', call. = F)
+  }
+  
+  # Parse formulas, and sort
+  vars <- x %>%
+    rowwise() %>%
+    group_split() %>%
+    map(function(var) {
+      formula <- as.heRoFormula(var[[formula_column]])
+      if (('.is_ss' %in% colnames(var)) && var$.is_ss) {
+        formula$depends <- c(formula$depends, 'strategy')
+        formula$fo_depends <- c(formula$fo_depends, 'strategy')
+      }
+      if (('.is_gs' %in% colnames(var)) && var$.is_gs) {
+        formula$depends <- c(formula$depends, 'group')
+        formula$fo_depends <- c(formula$fo_depends, 'group')
+      }
+      var$formula <- list(formula)
+      var
+    }) %>%
+    bind_rows() %>%
     select(name, display_name, description, !!enquo(formula_column)) %>%
-    mutate(!!formula_column := map(!!sym(formula_column), as.heRoFormula)) %>%
-    rbind(tree_vars) %>%
+    rbind(extras) %>%
     {try({sort_variables(.)}, silent = T)}
   
   if (class(vars)[1] == 'try-error') {
@@ -92,7 +124,8 @@ sort_variables <- function(x, extra_vars = NULL) {
         # Make a named list of all variables
         all_vars <- c(
           set_names(x$formula, x$name),
-          extras
+          extras,
+          c('strategy', 'group')
         )
         
         # Extract any decision tree probability calls

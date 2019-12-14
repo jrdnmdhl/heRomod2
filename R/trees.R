@@ -153,15 +153,21 @@ decision_tree <- function(df, name) {
     map(function(x) {
       # Get the subtree
       subtree <- filter(tree_df, parent == x)
-      # Evaluate the formulas
-      values <- subtree$formula %>%
-        map(~as.lazy(., env = the_env) %>%
-            interp(C = -pi) %>%
-            lazy_eval())
+      # Parse subtree as variables
+      subtree_vars <- subtree %>%
+        mutate(name = node, display_name = node, description = node) %>%
+        parse_variables()
+      
+      # Create a namespace from parent environment
+      ns <- define_namespace(the_env, data.frame(the_env$cycle))
+      
+      # Evaluate the variables
+      res <- eval_variables(subtree_vars, ns, T, 'trees')
+      
       # Put into a matrix
-      mat <- do.call(cbind, values)
+      mat <- as.matrix(res$df[subtree_vars$name])
+
       # Calculate complementary probabilities
-      colnames(mat) <- subtree$node
       c_index <- mat == -pi
       mat[c_index] <- 0
       if (any(rowSums(c_index) > 1)) {

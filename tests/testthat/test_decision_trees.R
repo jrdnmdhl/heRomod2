@@ -15,7 +15,7 @@ test_that('incorrect column names are detected', {
   
   # Parse the variables specification
   expect_error(
-    heRomod2:::parse_variables(tree_tests$vars, segment, tree_tests$trees_misnamed_col),
+    heRomod2:::parse_seg_variables(tree_tests$vars, segment, tree_tests$trees_misnamed_col),
     'Error in decision tree specification, missing columns: "name".',
   )
   
@@ -29,7 +29,7 @@ test_that('duplicated node names are detected', {
   
   # Parse the variables specification
   expect_error(
-    heRomod2:::parse_variables(tree_tests$vars, segment, tree_tests$trees_dupe_node_name),
+    heRomod2:::parse_seg_variables(tree_tests$vars, segment, tree_tests$trees_dupe_node_name),
     'Error in decision tree specification, tree "tree" contained duplicate node names: "no_event".',
   )
   
@@ -43,7 +43,7 @@ test_that('invalid tag names detected', {
   
   # Parse the variables specification
   expect_error(
-    heRomod2:::parse_variables(tree_tests$vars, segment, tree_tests$trees_bad_csl),
+    heRomod2:::parse_seg_variables(tree_tests$vars, segment, tree_tests$trees_bad_csl),
     paste0(
       'Error in decision tree specification, tree "tree" contained invalid tag names for nodes:',
       ' "survived_surgery". Tag names must be provided in a comma-separated list, start with a letter and',
@@ -61,7 +61,7 @@ test_that('tag names that are duplicates of node names detected', {
   
   # Parse the variables specification
   expect_error(
-    heRomod2:::parse_variables(tree_tests$vars, segment, tree_tests$trees_dupe_tag_node_name),
+    heRomod2:::parse_seg_variables(tree_tests$vars, segment, tree_tests$trees_dupe_tag_node_name),
     'Error in decision tree "tree", tag names were duplicates of node names: "had_event".',
   )
   
@@ -78,7 +78,7 @@ test_that('evaluated decision tree is of correct class', {
   expect_silent({
     
     # Parse the variables specification
-    parsed_vars <- heRomod2:::parse_variables(tree_tests$vars, segment, tree_tests$trees_valid)
+    parsed_vars <- heRomod2:::parse_seg_variables(tree_tests$vars, segment, tree_tests$trees_valid)
     
     # Evaluate the variables
     var_res <- heRomod2:::eval_variables(parsed_vars, test_ns)
@@ -98,7 +98,7 @@ test_that('duplicate uses of "C" within a level are detected.', {
   
   # Parse the variables specification
   expect_silent(
-    parsed_vars <- heRomod2:::parse_variables(tree_tests$vars, segment, tree_tests$trees_double_C)
+    parsed_vars <- heRomod2:::parse_seg_variables(tree_tests$vars, segment, tree_tests$trees_double_C)
   )
   
   # Evaluate the variables
@@ -136,7 +136,7 @@ test_that('duplicate uses of "C" within a level are detected.', {
   )
   
 })
-test_that('decision tree based probability calculations work yield correct results', {
+test_that('decision tree based probability calculations yield correct results', {
   
   test_ns <- heRomod2:::create_test_ns(segment)
   cycles <- rep(seq_len(12), 12)
@@ -144,7 +144,7 @@ test_that('decision tree based probability calculations work yield correct resul
   test_ns$env$.trees <- tree_tests$trees_valid
   
   # Parse the variables specification
-  parsed_vars <- heRomod2:::parse_variables(tree_tests$vars, segment, tree_tests$trees_valid)
+  parsed_vars <- heRomod2:::parse_seg_variables(tree_tests$vars, segment, tree_tests$trees_valid)
   
   # Evaluate the variables
   var_res <- heRomod2:::eval_variables(parsed_vars, test_ns)
@@ -211,7 +211,7 @@ test_that('evaluated decision tress can be plotted', {
   expect_silent({
     
     # Parse the variables specification
-    parsed_vars <- heRomod2:::parse_variables(tree_tests$vars, segment, tree_tests$trees_valid)
+    parsed_vars <- heRomod2:::parse_seg_variables(tree_tests$vars, segment, tree_tests$trees_valid)
   
     # Evaluate the variables
     var_res <- heRomod2:::eval_variables(parsed_vars, test_ns)

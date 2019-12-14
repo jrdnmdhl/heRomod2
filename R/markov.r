@@ -19,7 +19,7 @@ run_segment.markov <- function(segment, model, env, ...) {
   # Parse the specification tables provided for states,
   # variables, transitions, values, and summaries
   uneval_states <- parse_states(model$states, model$settings)
-  uneval_vars <- parse_variables(model$variables, segment, trees = model$trees)
+  uneval_vars <- parse_seg_variables(model$variables, segment, trees = model$trees)
   uneval_trans <- parse_trans_markov(model$transitions, uneval_states, uneval_vars)
   uneval_health_values <- parse_values(model$health_values, uneval_vars)
   #uneval_econ_values <- parse_values(model$economic_values)

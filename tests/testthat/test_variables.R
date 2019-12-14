@@ -11,7 +11,7 @@ test_that('missing column names in variables spec are caught', {
   
   # Parse the variables specification
   expect_error(
-    heRomod2:::parse_variables(var_tests$missing_col, segment),
+    heRomod2:::parse_seg_variables(var_tests$missing_col, segment),
     'Variables definition was missing columns: "name".'
   )
   
@@ -20,21 +20,21 @@ test_that('duplicate variable names are detected', {
   
   # Parse the variables specification
   expect_error(
-    heRomod2:::parse_variables(var_tests$dupe, segment),
+    heRomod2:::parse_seg_variables(var_tests$dupe, segment),
     'Variables definition contained duplicate names for variables: "g", "f".'
   )
 })
 test_that('invalid variable names are detected', {
   # Parse the variables specification
   expect_error(
-    heRomod2:::parse_variables(var_tests$invalid_name, segment),
+    heRomod2:::parse_seg_variables(var_tests$invalid_name, segment),
     'Variables definition contained invalid names for variables: "1e", ".fun". Names must start with a letter and contain only letters, numbers, and underscores.'
   )
 })
 test_that('reserved variable names are detected', {
   # Parse the variables specification
   expect_error(
-    heRomod2:::parse_variables(var_tests$keyword, segment),
+    heRomod2:::parse_seg_variables(var_tests$keyword, segment),
     'Variables definition contained names reserved for keywords for variables: "cycle".'
   )
 })
@@ -42,7 +42,7 @@ test_that('circular references are detected', {
   
   # Parse the variables specification
   expect_error(
-    heRomod2:::parse_variables(var_tests$circular, segment),
+    heRomod2:::parse_seg_variables(var_tests$circular, segment),
     'Variables definition contained circular references in variables: "f", "g", "c", "e", "a".'
   )
 })
@@ -51,7 +51,7 @@ test_that('circular references are detected', {
 test_that('formula syntax errors are handled properly', {
   
   # Parse the variables specification
-  parsed_vars <- heRomod2:::parse_variables(var_tests$invalid, segment)
+  parsed_vars <- heRomod2:::parse_seg_variables(var_tests$invalid, segment)
   
   # Check that a warning is produced naming all the variables generating
   # errors.
@@ -86,7 +86,7 @@ test_that('formula syntax errors are handled properly', {
 test_that('formula evaluation errors are handled properly', {
   
   # Parse the variables specification
-  parsed_vars <- heRomod2:::parse_variables(var_tests$err, segment)
+  parsed_vars <- heRomod2:::parse_seg_variables(var_tests$err, segment)
   
   # Check that a warning is produced naming all the parameters generating
   # errors.
@@ -118,7 +118,7 @@ test_that('formula evaluation errors are handled properly', {
 test_that('variables are evaluated properly when sorted', {
   
   # Parse the variables specification
-  parsed_vars <- heRomod2:::parse_variables(var_tests$sorted, segment)
+  parsed_vars <- heRomod2:::parse_seg_variables(var_tests$sorted, segment)
   
   # Check that parsed spec has right number of rows
   expect_equal(nrow(parsed_vars), 7)
@@ -177,7 +177,7 @@ test_that('variables are evaluated properly when sorted', {
 test_that('variables are evaluated properly when unsorted', {
   
   # Parse the variables specification
-  parsed_vars <- heRomod2:::parse_variables(var_tests$unsorted, segment)
+  parsed_vars <- heRomod2:::parse_seg_variables(var_tests$unsorted, segment)
   
   # Check that parsed spec has right number of rows
   expect_equal(nrow(parsed_vars), 7)

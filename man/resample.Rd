@@ -4,7 +4,7 @@
 \alias{resample}
 \title{Resample Model Parameters}
 \usage{
-resample(model, n, segments, corr = NULL)
+resample(model, n, segments, corr = NULL, seed = NULL)
 }
 \arguments{
 \item{model}{A heRomodel object}

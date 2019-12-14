@@ -40,7 +40,7 @@ vars$display_name <- ''
 vars$description <- ''
 vars$strategy <- segment$strategy
 vars$group <- segment$group
-var_list <- heRomod2:::parse_variables(vars, segment)
+var_list <- heRomod2:::parse_seg_variables(vars, segment)
 
 test_that("Getting Names", {
   var_res <- heRomod2:::eval_variables(var_list, ns)
