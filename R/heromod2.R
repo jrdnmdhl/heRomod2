@@ -37,6 +37,7 @@ error_codes <- list(
 C <- -pi
 strat_var_code <- 'strategy'
 group_var_code <- 'group'
+segment_vars <- c(strat_var_code, group_var_code)
 global_var_codes <- c('global', '')
 
 tf_unit_code <- 'timeframe_unit'

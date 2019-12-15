@@ -12,6 +12,10 @@
 #' @export
 resample <- function(model, n, segments, corr = NULL, seed = NULL) {
   
+  # Check sampling specification
+  check_sampling_spec(model$variables)
+  
+  # Get the variables that are sampled
   sampled_vars <- model$variables %>%
     filter(!is.na(sampling), sampling != '') %>%
     mutate(.index = seq_len(n()))
@@ -82,12 +86,13 @@ resample <- function(model, n, segments, corr = NULL, seed = NULL) {
     # Check if value was an evaluation error
     if (is_error(dist_func)) {
       msg <- paste0(
-        'Error in evaluation of sampling distribution for parameter: ',
+        'Error in evaluation of sampling distribution for parameter ',
         err_name_string(var_row$name),
-        "."
+        ": ",
+        dist_func
       )
       warning(msg, call. = F)
-      res <- as.character(dist_func)
+      res <- as.numeric(NA)
     } else {
       
       # Try to draw from distribution function
@@ -96,12 +101,13 @@ resample <- function(model, n, segments, corr = NULL, seed = NULL) {
       # Check whether drawing samples resulted in error
       if (is_error(res)) {
         msg <- paste0(
-          'Error in evaluation of sampling distribution for parameter: ',
+          'Error in evaluation of sampling distribution for parameter ',
           err_name_string(var_row$name),
-          "."
+          ":",
+          res
         )
         warning(msg, call. = F)
-        res <- as.character(res)
+        res <- as.numeric(NA)
       }
     }
     
@@ -127,4 +133,26 @@ resample <- function(model, n, segments, corr = NULL, seed = NULL) {
   
   # Return the sampled variables by segment & simulation
   seg_samples
+}
+
+check_sampling_spec <- function(x) {
+  
+  # Check that sampling column is present
+  missing_col <- check_missing_colnames(x, 'sampling')
+  if (length(missing_col) > 0) {
+    stop(
+      'Error in variables specification, "sampling" column was missing.',
+      call. = F
+    )
+  }
+  
+  # Check that at least one variable is sampled
+  none_sampled <- all(is.empty(x$sampling))
+  if (none_sampled) {
+    stop(
+      'Error in variables specification, no sampling distributions were specified.',
+      call. = F
+    )
+  }
+  
 }

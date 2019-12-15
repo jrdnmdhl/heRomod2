@@ -4,7 +4,7 @@ parse_seg_variables <- function(x, segment = NULL, trees = NULL,
                                 formula_column = 'formula',
                                 context = 'Variables') {
   # Check that all necessary columns are present
-  missing_cols <- check_missing_colnames(x, c(vars_def_columns, formula_column, strat_var_code, group_var_code))
+  missing_cols <- check_missing_colnames(x, c(vars_def_columns, formula_column, segment_vars))
   if (length(missing_cols) > 0) {
     missing_msg <- err_name_string(missing_cols)
     stop(context, ' definition was missing columns: ', missing_msg, '.', call. = F)
