@@ -23,7 +23,8 @@ resample <- function(model, n, segments, corr = NULL, seed = NULL) {
     corr <- diag(rep(1, n_var))
   }
   
-  # Sample uniform random
+  # Set seed and sample uniform random
+  set.seed(seed)
   mat_p <- stats::pnorm(mvnfast::rmvn(n = n, mu = rep(0, n_var), sigma = corr))
   
   # Prepopulate a list to store simulations
