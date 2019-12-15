@@ -45,7 +45,7 @@ resample <- function(model, n, segments, corr = NULL, seed = NULL) {
     if (!is_gs) row_group <- segments$group[1]
     
     seg <- filter(segments, group == row_group, strategy == row_strat)
-    seg_ns <- seg$eval_vars[[1]]
+    seg_ns <- clone_namespace(seg$eval_vars[[1]])
     seg_vars <- seg$uneval_vars[[1]]
     
     # Warn about strategy or group dependence
@@ -55,7 +55,7 @@ resample <- function(model, n, segments, corr = NULL, seed = NULL) {
       msg <- paste0(
         'Variable ',
         err_name_string(var_name),
-        ' reference a strategy-dependent variable but was assigned a sampling distribution.',
+        ' references a strategy-dependent variable but was assigned a sampling distribution.',
         ' Sampling variables that reference strategy-dependent variables is not reccomended',
         ' and will result in a loss of strategy-dependence in PSA.'
       )
@@ -64,7 +64,7 @@ resample <- function(model, n, segments, corr = NULL, seed = NULL) {
       msg <- paste0(
         'Variable ',
         err_name_string(var_name),
-        ' reference a group-dependent variable but was assigned a sampling distribution.',
+        ' references a group-dependent variable but was assigned a sampling distribution.',
         ' Sampling variables that reference group-dependent variables is not reccomended',
         ' and will result in a loss of group-dependence in PSA.'
       )
@@ -72,12 +72,40 @@ resample <- function(model, n, segments, corr = NULL, seed = NULL) {
     }
     
     # Set up the parameter
-    param <- lazyeval::as.lazy(var_row$sampling, rlang::env_clone(seg_ns$env))
-    param$env$bc <- seg_ns[var_name]
+    formula <- as.heRoFormula(var_row$sampling)
+    seg_ns$env$bc <- seg_ns[var_name]
     
-    # Evaluate and assign
-    dist_func <- lazy_eval(param, data = seg_ns$df)
-    cols[[i + 1]] <- dist_func(mat_p[ ,i])
+    # Evaluate distribution function
+    dist_func <- eval_formula(formula, seg_ns)
+    
+    # Check if value was an evaluation error
+    if (is_error(dist_func)) {
+      msg <- paste0(
+        'Error in evaluation of sampling distribution for parameter: ',
+        err_name_string(var_row$name),
+        "."
+      )
+      warning(msg, call. = F)
+      res <- as.character(dist_func)
+    } else {
+      
+      # Try to draw from distribution function
+      res <- safe_eval(dist_func(mat_p[ ,i]))
+      
+      # Check whether drawing samples resulted in error
+      if (is_error(res)) {
+        msg <- paste0(
+          'Error in evaluation of sampling distribution for parameter: ',
+          err_name_string(var_row$name),
+          "."
+        )
+        warning(msg, call. = F)
+        res <- as.character(res)
+      }
+    }
+    
+    # Assign result to column
+    cols[[i + 1]] <- res
   }
   
   # Make a data.frame with sampled variables by segment
@@ -94,6 +122,8 @@ resample <- function(model, n, segments, corr = NULL, seed = NULL) {
       vars_df <- do.call(tibble, samp_list)
       vars_df
     }) %>%
-    bind_rows
+    bind_rows()
+  
+  # Return the sampled variables by segment & simulation
   seg_samples
 }

@@ -44,33 +44,37 @@ define_formula <- function(string) {
 }
 
 # Evaluate Formula
-evaluate_formula <- function(x, ns) {
+eval_formula <- function(x, ns) {
   
   # Attempt to evaluate expression
-  suppressWarnings({x$env <- ns$env})
-  res <- tryCatch(
-    {
-      x$lazy$env <- ns$env
-      lazy_eval(x$lazy, data = ns$df)
-    },
-    error = function(e) {
-      # Check if any of the variables referenced is an error 
-      vars <- x$depends
-      for (i in rev(vars)) {
-        if (i %in% get_names(ns, 'all', keywords = F)) {
-          value <- ns[i]
-          if (class(value) == 'heRo_error') {
-            error_msg <- glue('Error in dependency "{i}".')
-            return(tryCatch(stop(error_msg, call. = F), error = function(e) e))
-          }
+  suppressWarnings({x$lazy$env <- ns$env})
+  res <- safe_eval(lazy_eval(x$lazy, data = ns$df))
+  if (is_error(res)) {
+    # Check if any of the variables referenced is an error 
+    vars <- x$depends
+    for (i in rev(vars)) {
+      if (i %in% get_names(ns, 'all', keywords = F)) {
+        value <- ns[i]
+        if (is_error(value)) {
+          error_msg <- glue('Error in dependency "{i}".')
+          res <- define_error(error_msg)
         }
       }
-      return(e)
-    },
-    silent = T
-  )
+    }
+  }
   
-  # If an error occurs, return error message
+  # Return the result
+  res
+}
+
+# Safely evaluate an arbitrary statement and return the result if
+# successful or an error object if not.
+safe_eval <- function(x) {
+  
+  # Evaluate the expression
+  res <- tryCatch(x, error = function(e) e, silent = T)
+  
+  # If an error occurs, create an error message
   if ('error' %in% class(res)) {
     res <- define_error(res)
   }

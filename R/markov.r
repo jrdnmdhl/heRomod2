@@ -213,7 +213,7 @@ eval_trans_markov_lf <- function(df, ns, simplify = FALSE) {
       time_df$error <- NA
       
       # Evalulate transition formula
-      value <- evaluate_formula(row$formula[[1]], ns)
+      value <- eval_formula(row$formula[[1]], ns)
       
       # Check if value was an error in evaluating the formula
       if (is_error(value)) {

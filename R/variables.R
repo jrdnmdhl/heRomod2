@@ -183,7 +183,7 @@ eval_variables <- function(x, ns, df_only = F, context = 'variables') {
   walk2(x$name, x$formula, function(name, value) {
     
     # Evaluate it
-    res <- evaluate_formula(value, ns)
+    res <- eval_formula(value, ns)
     
     # Check if the object was an error
     if (class(res) == 'heRo_error') {

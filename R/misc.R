@@ -25,7 +25,7 @@ read_model <- function(path) {
 read_workbook <- function(path) {
   sheet_names <- getSheetNames(path)
   names(sheet_names) <- sheet_names
-  lapply(sheet_names, function(x) readWorkbook(path, sheet = x))
+  lapply(sheet_names, function(x) as_tibble(readWorkbook(path, sheet = x)))
 }
 
 define_object <- function(..., class) {
