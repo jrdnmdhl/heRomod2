@@ -29,7 +29,8 @@ resample <- function(model, n, segments, corr = NULL, seed = NULL) {
   
   # Set seed and sample uniform random
   set.seed(seed)
-  mat_p <- stats::pnorm(mvnfast::rmvn(n = n, mu = rep(0, n_var), sigma = corr))
+  r_norm <- mvnfast::rmvn(n = n, mu = rep(0, n_var), sigma = corr)
+  mat_p <- stats::pnorm(r_norm)
   
   # Prepopulate a list to store simulations
   cols <- vector(mode = "list", length = n_var + 1)
@@ -136,6 +137,17 @@ resample <- function(model, n, segments, corr = NULL, seed = NULL) {
 }
 
 check_sampling_spec <- function(x) {
+  
+  # Check that it is a data.frame
+  is_df <- 'data.frame' %in% class(x)
+  if (!is_df) {
+    msg <- paste0(
+      'Error in variables specification, specification was of class "',
+      class(x)[1],
+      '" rather than "data.frame".'
+    )
+    stop(msg, call. = F)
+  }
   
   # Check that sampling column is present
   missing_col <- check_missing_colnames(x, 'sampling')

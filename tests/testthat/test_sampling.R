@@ -1,4 +1,5 @@
 context("Sampling")
+suppressMessages(library(dplyr))
 
 test_that("parameter sampling yields correct averages", {
   
@@ -71,8 +72,15 @@ test_that("parameter sampling yields correct averages", {
     strategy == 'check',
     group == 'female_age_ge_35'
   )
+  means <- model$tables$eq5d %>%
+    group_by(treatment, state) %>%
+    summarize(value = mean(value))
+  chemo_m_lt35_smean <- bind_rows(chemo_m_lt35$eq5d_data) %>%
+    group_by(treatment, state) %>%
+    summarize(value = mean(value))
   
   # Check results
+  expect_equal(means$value, chemo_m_lt35_smean$value, tolerance = 1e-2)
   expect_equal(26, mean(chemo_m_lt35$start_age), tolerance = 1e-1)
   expect_equal(45, mean(chemo_m_ge35$start_age), tolerance = 1e-1)
   expect_equal(27, mean(chemo_f_lt35$start_age), tolerance = 1e-1)
@@ -176,6 +184,16 @@ test_that("errors in distribution parsing are handled properly", {
   expect_error(
     sampled_segments <- heRomod2:::resample(missing_col, 10, missing_col_eval$segments, seed = 1),
     'Error in variables specification, "sampling" column was missing.'
+  )
+  
+  # Model with missing sampling column
+  not_df <- model
+  not_df$variables <- dplyr::select(not_df$variables, -sampling)
+  not_df_eval <- run_model(not_df)
+  not_df$variables <- 'test'
+  expect_error(
+    sampled_segments <- heRomod2:::resample(not_df, 10, missing_col_eval$segments, seed = 1),
+    'Error in variables specification, specification was of class "character" rather than "data.frame".'
   )
   
 })

@@ -188,6 +188,13 @@ eval_variables <- function(x, ns, df_only = F, context = 'variables') {
     # Check if the object was an error
     if (class(res) == 'heRo_error') {
       error_params <<- append(error_params, name)
+      warning(
+        'Error in evaluation of ', context, ' ',
+        err_name_string(name),
+        ": ",
+        paste0(res),
+        call. = F
+      )
     }
     
     # Determine whether result is a vector or object parameter
@@ -199,15 +206,9 @@ eval_variables <- function(x, ns, df_only = F, context = 'variables') {
       # If an object parameter, assign to environment
       assign(name, res, envir = ns$env)
     }
+    
+    
   })
-  
-  if (length(error_params) > 0) {
-    warning(
-      'Error in evaluation of ', context, ': ',
-      err_name_string(error_params),
-      "."
-    )
-  }
   
   return(ns)
 }

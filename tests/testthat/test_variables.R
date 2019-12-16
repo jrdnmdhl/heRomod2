@@ -57,7 +57,7 @@ test_that('formula syntax errors are handled properly', {
   # errors.
   expect_warning(
     eval_vars <- heRomod2:::eval_variables(parsed_vars, test_ns),
-    'Error in evaluation of variables: "a", "f", "c", "e", "g".'
+    c('Error in evaluation of variables "a": Error in formula syntax.')
   )
   
   # Check that the blank formula evaluated to NA
@@ -92,7 +92,7 @@ test_that('formula evaluation errors are handled properly', {
   # errors.
   expect_warning(
     eval_vars <- heRomod2:::eval_variables(parsed_vars, test_ns),
-    'Error in evaluation of variables: "a", "c", "e", "g".'
+    'Error in evaluation of variables "a": Variable "z" not found.'
   )
   
   # Check that the value of the parameters are heRo_error objects.

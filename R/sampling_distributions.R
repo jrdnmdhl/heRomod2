@@ -55,15 +55,15 @@ lognormal <- function(mean, sd, meanlog, sdlog) {
 bootstrap <- function(x, id = NULL, strata = NULL, weight = NULL) {
   if (is.null(id)) {
     x$.id <- seq_len(nrow(x))
+    id <- ".id"
   }
-  id <- ".id"
   function(q) {
     n <- length(q)
-    resampled_df <- group_by_(x, .dots = strata) %>%
+    resampled_df <- group_by(x, !!strata) %>%
       do({
         
         # Get the set of unique observations
-        unique <- distinct_(x, .dots = id)
+        unique <- distinct(x, !!sym(id))
         n_unique <- nrow(unique)
         
         # Handle the weights if provided
@@ -77,7 +77,7 @@ bootstrap <- function(x, id = NULL, strata = NULL, weight = NULL) {
         sampled_indices <- sample(seq_len(n_unique), n * n_unique, replace = T, prob = prob)
         sampled_df <- slice(unique, sampled_indices) %>%
           mutate(.sim = rep(seq_len(n), each = n_unique)) %>%
-          select_(.dots = c(".sim", id)) %>%
+          select(!!c(".sim", id)) %>%
           left_join(x, by = id)
         
         sampled_df
