@@ -32,7 +32,7 @@ evaluate_values <- function(df, ns, simplify = F) {
     map(function(x) {
       state_ns <- eval_variables(x, clone_namespace(ns), T)
       state_res <- state_ns$df
-      state_res$state <- x$state
+      state_res$state <- x$state[1]
       if (simplify) {
         # Transform to matrix to check state-time-dependency
         

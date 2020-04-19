@@ -8,5 +8,5 @@ plot_decision_tree <- function(x, ...) {
     geom_edge_link(aes(label = formula), angle_calc = 'along', label_dodge = unit(2.5, 'mm')) +
     geom_node_label(aes(label = node)) +
     theme_void() +
-    scale_x_continuous(expand = expand_scale(mult = 0.2))
+    scale_x_continuous(expand = expansion(mult = 0.2))
 }
