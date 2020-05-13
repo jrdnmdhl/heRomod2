@@ -19,6 +19,8 @@ Imports:
     tibble,
     mvnfast,
     crayon,
+    stringr,
+    readr,
     openxlsx,
     rlang,
     purrr,
@@ -32,4 +34,4 @@ LazyData: true
 Suggests: 
     testthat,
     covr
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.2

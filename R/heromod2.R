@@ -2,15 +2,13 @@
 #' @import furrr
 #' @import future
 #' @import tidyr
-#' @import purrr
-#' @import openxlsx
+#' @import purrr openxlsx tidygraph ggraph ggplot2
+#' @importFrom stringr str_split_fixed
 #' @importFrom tibble tibble as_tibble
 #' @importFrom glue glue
 #' @importFrom lazyeval lazy lazy_eval interp as.lazy as.lazy_dots
 #' @importFrom rlang .data sym
-#' @import tidygraph
-#' @import ggraph
-#' @import ggplot2
+#' @importFrom readr read_csv
 #' @importFrom utils capture.output
 NULL
 

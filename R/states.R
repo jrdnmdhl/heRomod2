@@ -1,3 +1,6 @@
+
+
+
 parse_states <- function(states, settings) {
   
   # Check that variables definition is valid

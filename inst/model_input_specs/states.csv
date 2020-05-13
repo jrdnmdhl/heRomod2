@@ -1,0 +1,7 @@
+name,required,type,default,fallback
+name,TRUE,character,,
+display_name,FALSE,character,,name
+description,FALSE,character,,display_name
+initial_probability,TRUE,character,0,
+state_time_limit,FALSE,numeric,0,
+state_time_limit_unit,FALSE,character,cycles,

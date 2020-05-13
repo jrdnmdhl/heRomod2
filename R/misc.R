@@ -28,6 +28,19 @@ read_workbook <- function(path) {
   lapply(sheet_names, function(x) as_tibble(readWorkbook(path, sheet = x)))
 }
 
+#' @export
+read_model <- function(path) {
+  model <- read_workbook(glue('{path}/model.xlsx'))
+  model$tables <- list.files(glue('{path}/data')) %>%
+    purrr::set_names(., gsub('.csv', '', ., fixed = T)) %>%
+    purrr::map(~read.csv(glue('{path}/data/{.}'), stringsAsFactor = F, check.names = F))
+  model$scripts <- list.files(glue('{path}/scripts')) %>%
+    purrr::set_names(., gsub('.R', '', ., fixed = T)) %>%
+    purrr::map(~readr::read_file(glue('{path}/scripts/', .)))
+  class(model) <- "heRoModel"
+  return(model)
+}
+
 define_object <- function(..., class) {
   define_object_(list(...), class)
 }
@@ -207,8 +220,96 @@ parse_settings <- function(settings) {
     setNames(settings$setting)
 }
 
+#' Generate List of Names for Error Messages
+#' 
+#' Generates a comma-separated character of quoted names in order to list
+#' items referenced in error messages.
+#' 
+#' @param x character vector of names
+#' 
+#' @return character with comma-separated list of quoted names
 err_name_string <- function(x) {
   paste0('"', x, '"', collapse = ', ')
 }
 
+#' Check if Name is Valid
+#' 
+#' Checks character vector to see if elements follow the rules of heRomod2 variable names,
+#' which must start with a letter and include only letters, numbers, and underscores.
+#' 
+#' @param x character vector of names to check
+#' 
+#' @return logical vector indicating whether the elements of `x` are valid.
 is_valid_name <- function(x) grepl('^[[:alpha:]]+[[:alnum:]_]*$', x)
+
+#' Check If Character is Empty/Missing
+#' 
+#' Check if a character is either `NA` or empty.
+#' 
+#' @param x character vector to be checked
+#' 
+#' @return logical vector indicating whether the elements of `x` are empty or missing.
+is_faslsy_chr <- function(x) {
+  is.na(x) | x == ''
+}
+
+
+#' Check Table
+#' 
+#' Check a model inputs dataframe based on a given specification dataframe. Specification
+#' dataframes are used to check input dataframes, ensure that required columns are present
+#' and impute missing values for non-required columns.
+#' 
+#' @param df The input dataframe to be checked
+#' @param spec The specification dataframe
+#' @param context A string used in error messages to indicate the type of input dataframe
+#' 
+#' @return The input dataframe with missing values imputed
+check_tbl <- function(df, spec, context) {
+  
+  spec_cn <- spec$name
+  n_col <- nrow(spec)
+  n_row <- nrow(df)
+  
+  for (i in seq_len(n_col)) {
+    col_name <- spec$name[i]
+    required <- spec$required[i]
+    type <- spec$type[i]
+    default <- spec$default[i]
+    fallback <- spec$fallback[i]
+    values <- df[[spec_cn[i]]]
+    
+    # Handle case where the entire column is missing
+    if (is.null(values)) {
+      miss_data <- rep(TRUE, n_row)
+    } else {
+      miss_data <- is_faslsy_chr(values)
+    }
+    
+    # Impute missing values
+    if (any(miss_data)) {
+      if (required) {
+        # Throw error if a required column has missing values
+        err_msg <- glue('{context} has missing values in required column: {col_name}.')
+        stop(err_msg, call. = F)
+      } else if (!is.na(fallback)) {
+        # If a fallback is specified, replace missing values with fallback
+        values[miss_data] <- df[[fallback]][miss_data]
+      } else {
+        # If a default is specified, replace missing values with default
+        values[miss_data] <- default
+      }
+    }
+    
+    # Update data frame
+    df[[col_name]] <- convert_to_type(values, type)
+  }
+  
+  # Use only the columns defined in the spec
+  select(df, {{spec_cn}})
+}
+
+convert_to_type <- function(x, type) {
+  func <- eval(parse(text = paste0('as.', type)))
+  func(x)
+}
