@@ -36,6 +36,35 @@ run_model <- function(model, ...) {
   res
 }
 
+#' @export
+run_model1 <- function(model, ...) {
+  
+  # Capture the extra arguments
+  dots <- list(...)
+  
+  # Create a results object
+  res <- list()
+  
+  # Parse the model
+  parsed_model <- parse_model(model, ...)
+  
+  # Get model segments
+  if (is.null(dots$newdata)) segments <- get_segments(parsed_model)
+  else segments <- dots$newdata
+  
+  # Split by segment, evaluate each segment in parallel, combine results
+  
+  segments1 <- segments %>%
+    rowwise() %>%
+    group_split() 
+  res$segments <- map(function(segment) run_segment(segment, parsed_model, ...)) %>%
+    bind_rows()
+  
+  # Process the results
+  
+  # Return
+  res
+}
 
 parse_model <- function(model, ...) {
   
