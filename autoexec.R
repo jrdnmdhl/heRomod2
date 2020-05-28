@@ -1,0 +1,16 @@
+library(devtools)
+library(tidyverse)
+
+install.packages("future")
+install.packages("furrr")
+install.packages("mvnfast")
+install.packages("openxlsx")
+install.packages("ggraph")
+install.packages("tidygraph")
+
+library(future)
+library(furrr)
+library(mvnfast)
+library(openxlsx)
+library(ggraph)
+library(tidygraph)
