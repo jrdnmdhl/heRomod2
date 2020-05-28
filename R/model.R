@@ -57,13 +57,15 @@ run_model1 <- function(model, ...) {
   segments1 <- segments %>%
     rowwise() %>%
     group_split() 
-  res$segments <- map(function(segment) run_segment(segment, parsed_model, ...)) %>%
-    bind_rows()
+  #res$segments <- map(segments1, function(segment) run_segment(segment, parsed_model, ...)) %>%
+  #  bind_rows()
+  
+  rrr <- run_segment(segments1[[1]], parsed_model, ...)
   
   # Process the results
   
   # Return
-  res
+  #res
 }
 
 parse_model <- function(model, ...) {

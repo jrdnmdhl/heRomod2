@@ -1,3 +1,4 @@
 library(heRomod2)
 model <- read_model('./inst/models/checkimab')
-res <- run_model(model)
+debug(run_model1)
+res <- run_model1(model)
