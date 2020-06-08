@@ -86,7 +86,18 @@ run_segment.markov <- function(segment, model, env, ...) {
 }
 
 markov_trace <- function(init, matrix) {
-  #print(init)
+  n <- dim(matrix)[1] + 1
+  s <- length(init)
+  x1 <- matrix(rep(init, each=n),nrow=n)
+  res_matrix <- array(0,c(n,s,s),dimnames = list(c(), c(colnames(init)),c(colnames(init))))
+  res_matrix[1,1,] <- init
+  for (i in 2:n) {
+    x1[i,] <- x1[i-1,] %*% matrix[i-1,,]
+    res_matrix[i,,] <- x1[i-1,] * matrix[i-1,,]
+    #x1[i,] <- colSums((res_matrix[i,,]))
+  }
+  colnames(x1) <- colnames(init)
+  return(list(x1,res_matrix))
 }
 
 # Markov
