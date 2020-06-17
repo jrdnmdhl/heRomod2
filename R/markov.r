@@ -71,6 +71,7 @@ run_segment.markov <- function(segment, model, env, ...) {
   # Calculate Trace Probabilities
   expand_init <- expand_init_states(eval_states, st_maxes)
   trace <- markov_trace(expand_init, eval_trans_mat)
+  outcomes <- markov_outcome(eval_health_values_mat, trace$trace05)
   
   # Create the object to return that will summarize the results of
   # this segment.
@@ -82,6 +83,7 @@ run_segment.markov <- function(segment, model, env, ...) {
   segment$tmat <- list(eval_trans_mat)
   segment$vmat <- list(eval_health_values_mat)
   segment$trace <- list(trace)
+  segment$outcomes <- list(outcomes)
   segment
 }
 
@@ -89,15 +91,26 @@ markov_trace <- function(init, matrix) {
   n <- dim(matrix)[1] + 1
   s <- length(init)
   x1 <- matrix(rep(init, each=n),nrow=n)
-  res_matrix <- array(0,c(n,s,s),dimnames = list(c(), c(colnames(init)),c(colnames(init))))
-  res_matrix[1,1,] <- init
+  x05 <-x1[1:n-1,]
+  res_matrix <- array(0,c(n-1,s,s),dimnames = list(c(), c(colnames(init)),c(colnames(init))))
+  #res_matrix[1,1,] <- init
   for (i in 2:n) {
-    x1[i,] <- x1[i-1,] %*% matrix[i-1,,]
-    res_matrix[i,,] <- x1[i-1,] * matrix[i-1,,]
-    #x1[i,] <- colSums((res_matrix[i,,]))
+    j<-i-1 ;
+    x1[i,] <- x1[j,] %*% matrix[j,,]
+    res_matrix[j,,] <- x1[j,] * matrix[j,,]
+    x05[j,] = (x1[j,]+x1[i,])/2
+    #x1[i,] <- colSums((res_matrix[j,,]))
   }
   colnames(x1) <- colnames(init)
-  return(list(x1,res_matrix))
+  my_list <- list(x1,res_matrix,x05)
+  names(my_list) <- c("trace","transitions","trace05")
+  return(my_list)
+}
+
+markov_outcome <- function(weight_matrix, state_matrix) {
+  m <- dim(weight_matrix)[3]
+  res_mat <- replicate(m,state_matrix)
+  res_mat <- weight_matrix * res_mat
 }
 
 # Markov
