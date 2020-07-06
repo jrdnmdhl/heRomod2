@@ -71,7 +71,8 @@ run_segment.markov <- function(segment, model, env, ...) {
   # Calculate Trace Probabilities
   expand_init <- expand_init_states(eval_states, st_maxes)
   trace <- markov_trace(expand_init, eval_trans_mat)
-  outcomes <- markov_outcome(eval_health_values_mat, trace$trace05)
+
+  outcomes <- markov_outcome(eval_health_values_mat, trace$trace_hc$lifetable)
   
   # Create the object to return that will summarize the results of
   # this segment.
@@ -88,23 +89,32 @@ run_segment.markov <- function(segment, model, env, ...) {
 }
 
 markov_trace <- function(init, matrix) {
+  
+  # Prepare matrix to store trace & patient flows
   n <- dim(matrix)[1] + 1
   s <- length(init)
-  x1 <- matrix(rep(init, each=n),nrow=n)
-  x05 <-x1[1:n-1,]
-  res_matrix <- array(0,c(n-1,s,s),dimnames = list(c(), c(colnames(init)),c(colnames(init))))
-  #res_matrix[1,1,] <- init
+  trace_uncorr <- matrix(rep(init, each = n), nrow = n)
+  colnames(trace_uncorr) <- colnames(init)
+  
+  # Prepare matrix to store patient flows
+  flows <- array(0, c(n - 1, s, s), dimnames = list(c(), c(colnames(init)), c(colnames(init))))
+  
+  # Caclulate trace and flows cycle-by-cycle
   for (i in 2:n) {
-    j<-i-1 ;
-    x1[i,] <- x1[j,] %*% matrix[j,,]
-    res_matrix[j,,] <- x1[j,] * matrix[j,,]
-    x05[j,] = (x1[j,]+x1[i,])/2
-    #x1[i,] <- colSums((res_matrix[j,,]))
+    j <- i - 1
+    trace_uncorr[i,] <- trace_uncorr[j,] %*% matrix[j,,]
+    flows[j,,] <- trace_uncorr[j,] * matrix[j,,]
   }
-  colnames(x1) <- colnames(init)
-  my_list <- list(x1,res_matrix,x05)
-  names(my_list) <- c("trace","transitions","trace05")
-  return(my_list)
+  
+  # Calculate half-cycle corrected versions of trace
+  trace_hc <- calc_trace_hc(trace_uncorr)
+  
+  # Return trace and flows in list
+  list(
+    "trace" = trace_uncorr,
+    "trace_hc" = trace_hc, 
+    "flows" = flows
+  )
 }
 
 markov_outcome <- function(weight_matrix, state_matrix) {
@@ -338,6 +348,18 @@ calc_compl_probs <- function(mat) {
   valC <- 1 - rowSums(mat, dims = 2)[which(posC, arr.ind = TRUE)[, -3]] 
   mat[posC] <- valC
   mat
+}
+
+#' Calculate half-cycle corrected versions of trace
+calc_trace_hc <- function(mat) {
+  trace_start <- mat[-nrow(mat), ]
+  trace_end <- mat[-1, ]
+  trace_lifetable <- (trace_start + trace_end) / 2
+  list(
+    "start" = trace_start,
+    "end" = trace_end,
+    "lifetable" = trace_lifetable
+  )
 }
 
 check_matrix_probs <- function(mat) {
