@@ -138,7 +138,7 @@ markov_outcome <- function(weight_matrix, state_matrix) {
   # --------------------------------------------------------------------------------------- 
   states <- colnames(state_matrix$trace)
   states_vector <- states
-  dim(states)=c(length(states),1)
+  #dim(states)=c(length(states),1)
   v <- 1:length((states_vector))
   states<- cbind.data.frame(states,"obs"=v)
   
@@ -166,8 +166,6 @@ markov_outcome <- function(weight_matrix, state_matrix) {
   
   # generating hc mask table for each hc_type 
   # ---------------------------------------------------------------------------------------
-  #mask_table <- array(0,c(length(states_vector), 4+length(hc_type), length(health_types )))
-  
   for (k in 1: length(health_types)) {
     mask_table1 <- merge(a2, a3[a3$description==health_types[k],], by='states', all.x = TRUE, all.y = FALSE )
     mask_table1 <- mask_table1[order(mask_table1$obs.x),][c("states","obs.x","type", "description")]
