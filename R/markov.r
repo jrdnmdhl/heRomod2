@@ -138,36 +138,28 @@ markov_outcome <- function(weight_matrix, state_matrix) {
   # --------------------------------------------------------------------------------------- 
   states <- colnames(state_matrix$trace)
   states_vector <- states
-  dim(states)=c(length(states),1)
+  #dim(states)=c(length(states),1)
   v <- 1:length((states_vector))
   states<- cbind.data.frame(states,"obs"=v)
   
   # matching expanded states to basic state 
   # --------------------------------------------------------------------------------------- 
-  a <- unlist(strsplit(states_vector, "\\."))  
-  dim(a) <-c(2,length(states_vector))
-  a <- a[1,]
-  dim(a) = c(length(states_vector),1)
-  colnames(a) = "state"
-  
+  state <- vapply(strsplit(states_vector,"\\."), `[`, 1, FUN.VALUE=character(1))
+
   # Building matrix for matching expanded states and states
   # --------------------------------------------------------------------------------------- 
-  a2 <-cbind(states,a)
+  a2 <-cbind(states,state)
   
-  # matching extended states and active_types: life_table, start, end 
+  # Matching extended states and active_types: life_table, start, end 
   a1 <- merge(a2, active_types, by='state', all.x=TRUE, all.y=FALSE)
-  a3 <- a1[order(a1$description, a1$obs),]
+  a3 <- a1[order(a1$description, a1$obs),][c(2,3,5,4)]
   row.names(a3) <- NULL
-  a3 <- subset(a3, select=-c(state))
-  a3 <- a3[c(1,2,4,3)]
   a3 <-a3[is.na(a3$description) == FALSE,]
   
   health_types <- attributes(a3$description)$levels
   
   # generating hc mask table for each hc_type 
   # ---------------------------------------------------------------------------------------
-  #mask_table <- array(0,c(length(states_vector), 4+length(hc_type), length(health_types )))
-  
   for (k in 1: length(health_types)) {
     mask_table1 <- merge(a2, a3[a3$description==health_types[k],], by='states', all.x = TRUE, all.y = FALSE )
     mask_table1 <- mask_table1[order(mask_table1$obs.x),][c("states","obs.x","type", "description")]
