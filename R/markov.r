@@ -45,6 +45,9 @@ run_segment.markov <- function(segment, model, env, ...) {
   eval_trans <- eval_trans_markov_lf(uneval_trans, eval_vars, model$settings$reduce_state_cycle)
   eval_health_values <- evaluate_values(uneval_health_values, eval_vars, model$settings$reduce_state_cycle)
   
+  #t <- model$health_values[c("state","type","name")]
+  
+  
   # Determine the number of tunnel states that need to be created
   # for each state.
   st_maxes <- rbind(
@@ -117,87 +120,15 @@ markov_trace <- function(init, matrix) {
   )
 }
 
-markov_outcome1 <- function(weight_matrix, state_matrix) {
-  m <- dim(weight_matrix)[3]
-  res_mat <- replicate(m,state_matrix)
-  res_mat <- weight_matrix * res_mat
-}
-
-
 markov_outcome <- function(weight_matrix, state_matrix) {
-  
-  # Table matching state -- description (Life Years, QUALs) -- hc_type (life_table, start, end)
-  # --------------------------------------------------------------------------------------- 
-  active_types <- cbind(description=model$health_values$description, state=model$health_values$state, type=model$health_values$type)
-  
-  #  vector with "start"     "end"       "lifetable"
-  # --------------------------------------------------------------------------------------- 
-  hc_type <- names(state_matrix$trace_hc)
-  
-  # Making sure that expanded states are sorted in appropriate order 
-  # --------------------------------------------------------------------------------------- 
-  states <- colnames(state_matrix$trace)
-  states_vector <- states
-  #dim(states)=c(length(states),1)
-  v <- 1:length((states_vector))
-  states<- cbind.data.frame(states,"obs"=v)
-  
-  # matching expanded states to basic state 
-  # --------------------------------------------------------------------------------------- 
-  state <- vapply(strsplit(states_vector,"\\."), `[`, 1, FUN.VALUE=character(1))
-
-  # Building matrix for matching expanded states and states
-  # --------------------------------------------------------------------------------------- 
-  a2 <-cbind(states,state)
-  
-  # Matching extended states and active_types: life_table, start, end 
-  a1 <- merge(a2, active_types, by='state', all.x=TRUE, all.y=FALSE)
-  a3 <- a1[order(a1$description, a1$obs),][c(2,3,5,4)]
-  row.names(a3) <- NULL
-  a3 <-a3[is.na(a3$description) == FALSE,]
-  
-  health_types <- attributes(a3$description)$levels
-  
-  # generating hc mask table for each hc_type 
-  # ---------------------------------------------------------------------------------------
-  for (k in 1: length(health_types)) {
-    mask_table1 <- merge(a2, a3[a3$description==health_types[k],], by='states', all.x = TRUE, all.y = FALSE )
-    mask_table1 <- mask_table1[order(mask_table1$obs.x),][c("states","obs.x","type", "description")]
-      for (i in 1:length(hc_type)){
-        mask_table1$x <- ifelse(mask_table1$type != hc_type[i] | is.na(mask_table1$type), 0, 1 )
-        names(mask_table1)[names(mask_table1) == "x"] <-  hc_type[i]
-      }
-    m <- length(health_types)
-    rownames(mask_table1) <- NULL
-  
-    mask_table1 <- as.matrix(mask_table1[c("start", "end", "lifetable")])
-    if (k==1) {mask_table <- mask_table1 } else {mask_table <- cbind(mask_table,mask_table1)}
+  r <- 0 
+  m <- dim(weight_matrix[["start"]])[3]
+  for (tp in c("start", "end", "lifetable")) {
+    res_mat <- replicate(m,state_matrix$trace_hc[[tp]])
+    r <- r + weight_matrix[[tp]] * res_mat 
   }
-  dim(mask_table) <- c(length(states_vector),length(hc_type), length(health_types))
-  colnames(mask_table) <- hc_type
-  
-  # Outcome calculations and summations 
-  # ---------------------------------------
-  res_mat_0_lifetable <- replicate(m,state_matrix$trace_hc$lifetable)
-  res_mat_0_start <- replicate(m,state_matrix$trace_hc$start)
-  res_mat_0_end <- replicate(m,state_matrix$trace_hc$end)
-  
-  mt <- mask_table[,which(colnames(mask_table)=="lifetable"),]
-  ccl <- dim(weight_matrix)[1]
-  mt1 <- rep(mt, each=ccl)
-  dim(mt1) <- c(ccl,length(states_vector),length(health_types))
-  res_mat_lifetable <- weight_matrix  * res_mat_0_lifetable * mt1
-  
-  mt <- mask_table[,which(colnames(mask_table)=="start"),] 
-  mt1 <- rep(mt, each=ccl)
-  res_mat_start <- weight_matrix   * res_mat_0_start * mt1
-  
-  mt <- mask_table[,which(colnames(mask_table)=="end"),]
-  mt1 <- rep(mt, each=ccl)
-  res_mat_end <- weight_matrix  *  res_mat_0_end * mt1 
-  
-  res_mat <- res_mat_start + res_mat_end + res_mat_lifetable 
-  }
+  r
+}
 
 # Markov
 #
