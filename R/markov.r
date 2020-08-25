@@ -44,10 +44,10 @@ run_segment.markov <- function(segment, model, env, ...) {
   eval_states <- eval_states(uneval_states, eval_vars)
   eval_trans <- eval_trans_markov_lf(uneval_trans, eval_vars, model$settings$reduce_state_cycle)
   eval_health_values <- evaluate_values(uneval_health_values, eval_vars, model$settings$reduce_state_cycle)
-  
+
   #t <- model$health_values[c("state","type","name")]
-  
-  
+
+
   # Determine the number of tunnel states that need to be created
   # for each state.
   st_maxes <- rbind(
@@ -56,7 +56,7 @@ run_segment.markov <- function(segment, model, env, ...) {
   ) %>%
     group_by(state) %>%
     summarize(max_st = max(max_st))
-  
+
   # Remove any calculated values for transitions & values that are
   # not needed.
   eval_trans_limited <- select(eval_trans, -max_st) %>%
@@ -65,12 +65,12 @@ run_segment.markov <- function(segment, model, env, ...) {
   eval_health_values_limited <- select(eval_health_values, -max_st) %>%
     left_join(st_maxes, by = c('state' = 'state')) %>%
     filter(state_cycle <= max_st)
-  
+
   # Transform transitions and values to matrices.
   eval_trans_mat <- lf_to_tmat(eval_trans_limited)
   expanded_state_names <- dimnames(eval_trans_mat)[[2]]
   eval_health_values_mat <- values_to_vmat(eval_health_values_limited, expanded_state_names)
-  
+
   # Calculate Trace Probabilities
   expand_init <- expand_init_states(eval_states, st_maxes)
   trace <- markov_trace(expand_init, eval_trans_mat)
@@ -121,13 +121,17 @@ markov_trace <- function(init, matrix) {
 }
 
 markov_outcome <- function(weight_matrix, state_matrix) {
-  r <- 0 
-  m <- dim(weight_matrix[["start"]])[3]
-  for (tp in c("start", "end", "lifetable")) {
-    res_mat <- replicate(m,state_matrix$trace_hc[[tp]])
-    r <- r + weight_matrix[[tp]] * res_mat 
-  }
-  r
+  types <- names(weight_matrix)
+  n_outcomes <- dim(weight_matrix[[1]])[3]
+  outcomes <- map(types, function(type) {
+    type_state_mat <- replicate(n_outcomes, state_matrix$trace_hc[[type]])
+    type_weight_mat <- weight_matrix[[type]]
+    type_outcome <- type_state_mat * type_weight_mat
+    type_outcome
+  }) %>%
+    Reduce(`+`, .)
+  
+  outcomes
 }
 
 # Markov
