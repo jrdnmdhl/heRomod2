@@ -24,27 +24,42 @@ test_that('duplicate state names are detected', {
   # Parse the variables specification
   expect_error(
     heRomod2:::parse_states(state_tests$dup_names, settings),
-    'factor level [2] is duplicated', fixed=TRUE
+    'States definition contained duplicate names for states: "relapse_free_on_tx', fixed=TRUE
   )
 })
-
-
 
 test_that('missing state names are detected', {
   
   # Parse the variables specification
   expect_error(
     heRomod2:::parse_states(state_tests$miss_name, settings),
-    'factor level [2] is duplicated', fixed=TRUE
+    'States definition contained invalid names for variables: "NA". Names must start with a letter and contain only letters, numbers, and underscores.', fixed=TRUE
   )
 })
-
 
 test_that('wrong state names are detected', {
   
   # Parse the variables specification
   expect_error(
     heRomod2:::parse_states(state_tests$wrong_name, settings),
-    'factor level [2] is duplicated', fixed=TRUE
+    'States definition contained invalid names for variables: "1". Names must start with a letter and contain only letters, numbers, and underscores.', fixed=TRUE
+  )
+})
+
+test_that('reserved name for state names are detected', {
+  
+  # Parse the variables specification
+  expect_error(
+    heRomod2:::parse_states(state_tests$reserved, settings),
+    'States definition contained names reserved keyword: "cycle".', fixed=TRUE
+  )
+})
+
+test_that('sum of initial probabilities is 1', {
+  
+  # Parse the variables specification
+  expect_error(
+    heRomod2:::parse_states(state_tests$probab, settings),
+    'States sum of initial probablities is not 1 : 0.5.', fixed=TRUE
   )
 })

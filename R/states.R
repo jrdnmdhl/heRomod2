@@ -45,8 +45,57 @@ parse_states <- function(states, settings) {
   as.states(parsed_states)
 }
 
-check_states <- function(x) {
-
+check_states <- function(x,context = "States") {
+    
+    error_msg = ''
+    
+    # Check that there are no duplicate names
+    dupe <- duplicated(x$name)
+    if (any(dupe)) {
+      dupe_names <- unique(x$name[dupe])
+      dupe_msg <- err_name_string(dupe_names)
+      error_msg <- paste0(context, ' definition contained duplicate names for states: ', dupe_msg, '.')
+    }
+    
+    # Check that state names are valid
+    invalid <- !is_valid_name(x$name)
+    if (any(invalid)) {
+      invalid_names <- x$name[invalid]
+      invalid_name_msg <- err_name_string(invalid_names)
+      error_msg <- paste0(
+        context,
+        ' definition contained invalid names for variables: ',
+        invalid_name_msg,
+        '. Names must start with a letter and contain only letters, numbers, and underscores.'
+      )
+    }
+    
+    # Check that no reserved names are used
+    used_reserved <- x$name %in% heRo_keywords
+    if (any(used_reserved)) {
+      reserved_index <- which(used_reserved)
+      reserved_names <- x$name[reserved_index]
+      reserved_msg <- err_name_string(reserved_names)
+      error_msg <- paste0(
+        context,
+        ' definition contained names reserved keyword: ',
+        reserved_msg,
+        '.'
+      )
+    }
+    
+    # Check that sum of initial probabilities is 1 
+    sum_prob <- sum(x$initial_probability)
+    if (sum_prob != 1) {
+      reserved_msg = sum_prob
+      error_msg <- paste0(
+        context,
+        ' sum of initial probablities is not 1 : ',
+        reserved_msg,
+        '.'
+      )
+    }    
+    if (error_msg != '') stop(error_msg, call. = F)
 }
 
 eval_states <- function(x, ns) {
