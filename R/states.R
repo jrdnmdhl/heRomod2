@@ -95,6 +95,48 @@ check_states <- function(x,context = "States") {
         '.'
       )
     }    
+    
+    # Check that unit is in Months, Quarters, Days, Yars 
+    flags <-tolower(x$state_cycle_limit_unit) %in% c("days", "weeks", "months", "cycles", "years")
+    if (any(!flags)) {
+      reserved_msg <- x$state_cycle_limit_unit[!flags]
+      error_msg <- paste0(
+        context,
+        ' wrong state cycle limit unit : ',
+        reserved_msg,
+        '.'
+      )
+    }        
+  
+    # Check that state cyle limit is non-negative  number 
+    flags <- unlist( map(x$state_cycle_limit, function(x) {! grepl("^[0-9]{1,}$",x)} ) )
+    
+    if (any(flags)) {
+      reserved_msg <- paste0(x$state_cycle_limit[flags],collapse = ", ")
+      error_msg <- paste0(
+        context,
+        ' wrong state cycle limit is not non-negative number: ',
+        reserved_msg,
+        '.'
+      )
+    }
+      
+      # Check that state share time is FALSE, TRUE, NA 
+    cl <- class(x$share_state_time) 
+    if (cl=="character") {
+      flags <-x$share_state_time %in% c("TRUE", "FALSE", NA)
+      if (any(!flags)) {
+        reserved_msg <- x$share_state_time[!flags]
+        error_msg <- paste0(
+          context,
+          ' wrong state share time value : ',
+          reserved_msg,
+          '.'
+        )
+      }       
+    }
+              
+    
     if (error_msg != '') stop(error_msg, call. = F)
 }
 

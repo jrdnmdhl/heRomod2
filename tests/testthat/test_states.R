@@ -63,3 +63,30 @@ test_that('sum of initial probabilities is 1', {
     'States sum of initial probablities is not 1 : 0.5.', fixed=TRUE
   )
 })
+
+test_that("state cylcle limit unit is calendar value", {
+  
+  # Parse the variables specification
+  expect_error(
+    heRomod2:::parse_states(state_tests$limit_unit, settings),
+    'States wrong state cycle limit unit : xxx.', fixed=TRUE
+  )
+})
+  
+  test_that("state cylcle limit is non-negative number", {
+    
+    # Parse the variables specification
+    expect_error(
+      heRomod2:::parse_states(state_tests$limit_val, settings),
+      'States wrong state cycle limit is not non-negative number: b, a, -2.', fixed=TRUE
+    )  
+})
+  
+  test_that("state share state", {
+    
+    # Parse the variables specification
+    expect_error(
+      heRomod2:::parse_states(state_tests$share, settings),
+      'tates wrong state share time value : foo.', fixed=TRUE
+    )  
+  })
