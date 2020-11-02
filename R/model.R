@@ -60,5 +60,8 @@ parse_model <- function(model, ...) {
   # Set the class of the object based on model type
   class(model) <- c(model$settings$model_type, 'list')
 
+  #check groups and stratagies
+  chek_groups_and_strategies(model)
+  
   model
 }
