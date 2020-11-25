@@ -194,6 +194,7 @@ check_trans_markov <- function(x, state_names) {
     plural <- if (length(missing_cols) > 1) 's' else ''
     missing_msg <- paste(missing_cols, collapse = ', ')
     error_msg <- glue('Transitions definition was missing column{plural}: {missing_msg}.')
+    if (error_msg != '') stop(error_msg, call. = F)
   }
   
   # Check that all from states are represented
@@ -242,6 +243,7 @@ limit_state_time <- function(df, state_time_limits) {
 #' Evaluate a Longform Transition Matrix
 eval_trans_markov_lf <- function(df, ns, simplify = FALSE) {
   
+  error_msg = ''
   # Loop through each row in transitions, evaluate, then
   # combine results into a single dataframe
   rowwise(df) %>%
@@ -262,7 +264,9 @@ eval_trans_markov_lf <- function(df, ns, simplify = FALSE) {
       
       # Check if value was an error in evaluating the formula
       if (is_error(value)) {
-        time_df$error <- value$message
+        #time_df$error <- value$message
+        error_msg <- paste0('Transitions: ' , value$message, ' Formula: ',row$formula[[1]], '.')
+        if (error_msg != '') stop(error_msg, call. = F)
       }
       
       # Check if value is numeric
@@ -271,7 +275,9 @@ eval_trans_markov_lf <- function(df, ns, simplify = FALSE) {
       } else {
         # If not numeric, mark it as an error
         type <- class(value)[1]
-        time_df$error <- glue('Result of formula was of type {type}, expected numeric.')
+        #time_df$error <- glue('Result of formula was of type {type}, expected numeric.')
+        error_msg <- glue('Result of formula was of type {type}, expected numeric.')
+        if (error_msg != '') stop(error_msg, call. = F)
       }
       
       if (simplify) {
