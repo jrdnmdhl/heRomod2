@@ -11,7 +11,7 @@ parse_tree_vars <- function(trees) {
       set_names(.) %>%
       map(function(x) {
         # Subset the master tree list to the entries for the given tree.
-        tree_df <- filter(trees, .data$name == x)
+        tree_df <- filter(trees, name == x)
         
         # Extract the dependencies for each node
         vars_by_node <- tree_df %>%
@@ -23,7 +23,7 @@ parse_tree_vars <- function(trees) {
             # If a node variable references C, effectively its dependencies include
             # the dependencies of all other nodes at with the same parent in the tree.
             if ('C' %in% vars) {
-              vars <- filter(tree_df, .data$parent == y$parent) %>%
+              vars <- filter(tree_df, parent == y$parent) %>%
                 .$formula %>%
                 map(~all.vars(parse(text = .), functions = T)) %>%
                 flatten_chr() %>%
@@ -142,7 +142,7 @@ decision_tree <- function(df, name) {
   the_env <- parent.frame()
   
   # Pull out tree from trees df
-  tree_df <- filter(df, .data$name == name)
+  tree_df <- filter(df, name == name)
   tree_df$parent <- ifelse(is.na(tree_df$parent), '', tree_df$parent)
   
   parent_names <- unique(tree_df$parent)
@@ -150,7 +150,7 @@ decision_tree <- function(df, name) {
   
   # Calculate the conditional probabilities level-by-level
   cond_prob <- parent_names %>%
-    map(function(x) {
+    lapply(function(x) {
       # Get the subtree
       subtree <- filter(tree_df, parent == x)
       # Parse subtree as variables
@@ -181,7 +181,7 @@ decision_tree <- function(df, name) {
     do.call(data.frame, .)
 
   # Isolate to the terminal nodes
-  terminal_nodes <- filter(tree_df, !.data$node %in% .data$parent) %>%
+  terminal_nodes <- filter(tree_df, !node %in% parent) %>%
     rowwise() %>%
     group_split() %>%
     map(function(x) {

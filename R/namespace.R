@@ -76,11 +76,11 @@ summary.namespace <- function(object, ...) {
   df_names <- get_names(object, "df", keywords = F)
   
   if (length(df_names) > 0) {
-    res_df <- tidyr::gather_(
+    res_df <- tidyr::pivot_longer(
         object$df,
-        'name',
-        'value',
-        gather_cols = df_names
+        names_to = 'name',
+        values_to = 'value',
+        all_of(df_names)
       ) %>%
       dplyr::mutate(
         print = NA,
@@ -88,11 +88,11 @@ summary.namespace <- function(object, ...) {
       ) %>%
       select(
         name,
-        .data$cycle,
-        .data$state_cycle,
-        .data$value,
-        .data$print,
-        .data$summary
+        cycle,
+        state_cycle,
+        value,
+        print,
+        summary
       )
   } else {
     res_df <- data.frame()
@@ -114,12 +114,12 @@ summary.namespace <- function(object, ...) {
 
   res_env <- select(
     res_env,
-    .data$name,
-    .data$cycle,
-    .data$state_cycle,
-    .data$value,
-    .data$print,
-    .data$summary
+    name,
+    cycle,
+    state_cycle,
+    value,
+    print,
+    summary
   )
   res <- rbind(res_df, res_env)
   res
@@ -170,7 +170,7 @@ update_segment_ns <- function(x, newdata) {
   
   # Remove existing vars from df
   names_to_clear <- dplyr::intersect(colnames(newdata), colnames(new_ns$df))
-  new_ns$df <- dplyr::select(new_ns$df, .dots = -names_to_clear)
+  new_ns$df <- dplyr::select(new_ns$df, !all_of(names_to_clear))
   
   # Assign new values
   purrr::iwalk(newdata, function(x, n) {

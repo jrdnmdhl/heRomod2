@@ -15,7 +15,7 @@ parse_seg_variables <- function(x, segment = NULL, trees = NULL,
     mutate_all(~as.character(.)) %>%
     filter(
       is_in_segment(segment, strat = strategy, grp = group),
-      !.data$name %in% names(segment)
+      !name %in% names(segment)
     ) %>%
     mutate(
       .is_ss = !(is.na(strategy) | strategy == '' | is.null(strategy)),

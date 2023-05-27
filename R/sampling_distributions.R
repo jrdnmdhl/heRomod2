@@ -78,14 +78,14 @@ bootstrap <- function(x, id = NULL, strata = NULL, weight = NULL) {
         sampled_df <- slice(unique, sampled_indices) %>%
           mutate(.sim = rep(seq_len(n), each = n_unique)) %>%
           select(!!c(".sim", id)) %>%
-          left_join(x, by = id)
+          left_join(x, by = id, relationship = 'many-to-many')
         
         sampled_df
       }) %>%
       ungroup()
     
     sim_index <- resampled_df$.sim
-    select(resampled_df, -.data$.sim) %>%
+    select(resampled_df, -.sim) %>%
       split(sim_index)
   }
 }

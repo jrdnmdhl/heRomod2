@@ -39,7 +39,7 @@ evaluate_values <- function(df, ns, simplify = F) {
         state_res <- state_res[ ,c("state", "cycle", "state_cycle", x$name)]
         
         val_mat <- state_res %>%
-          gather_("variable","value", x$name) %>%
+          pivot_longer(names_to = "variable", values_to = "value", all_of(x$name)) %>%
           lf_to_arr(c('cycle', 'state_cycle'), 'value')
         state_res$max_st <- arr_last_unique(val_mat, 2)
       } else {
@@ -54,7 +54,7 @@ values_to_vmat <- function(df, state_names) {
   value_names <- setdiff(colnames(df), c('state', 'cycle', 'state_cycle', 'max_st'))
   
   lf <-  df %>%
-    gather_("variable","value", value_names) %>%
+    pivot_longer(names_to = "variable", values_to = "value", all_of(value_names)) %>%
     mutate(e_state = factor(expand_state_name(state, state_cycle), levels = state_names))
   mat <- lf_to_arr(lf, c('cycle', 'e_state', 'variable'), 'value')
   dimnames(mat) <- list(

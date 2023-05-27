@@ -4,7 +4,9 @@
 \name{model_input_specs}
 \alias{model_input_specs}
 \title{Input Data Specifications}
-\format{A list of dataframes}
+\format{
+A list of dataframes
+}
 \usage{
 model_input_specs
 }

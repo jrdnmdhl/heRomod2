@@ -247,12 +247,12 @@ eval_trans_markov_lf <- function(df, ns, simplify = FALSE) {
 #' Convert Lonform Transitions Table to Matrix
 lf_to_tmat <- function(df) {
   df <- df %>%
-    group_by(.data$from) %>%
-    mutate(.max_st = max(.data$state_cycle)) %>%
+    group_by(from) %>%
+    mutate(.max_st = max(state_cycle)) %>%
     ungroup() %>%
     mutate(
-      .end = .data$state_cycle == .data$.max_st,
-      .from_e = expand_state_name(.data$from, .data$state_cycle)
+      .end = state_cycle == .max_st,
+      .from_e = expand_state_name(from, state_cycle)
     )
   lv_sg_i <- (!df$share_state_time) | (df$from_state_group != df$to_state_group)
   lv_i <- df$from != df$to & lv_sg_i
