@@ -1,5 +1,7 @@
-[![Travis-CI Build Status](https://travis-ci.org/jrdnmdhl/heRomod2.svg?branch=master)](https://travis-ci.org/jrdnmdhl/heRomod2)
-[![Coverage Status](https://codecov.io/gh/jrdnmdhl/heRomod2/branch/master/graph/badge.svg)](https://codecov.io/gh/jrdnmdhl/heRomod2?branch=master)
+<!-- badges: start -->
+[![CircleCI build status](https://circleci.com/gh/jrdnmdhl/heRomod2.svg?style=svg)](https://circleci.com/gh/jrdnmdhl/heRomod2)
+[![Codecov test coverage](https://codecov.io/gh/jrdnmdhl/heRomod2/branch/master/graph/badge.svg)](https://app.codecov.io/gh/jrdnmdhl/heRomod2?branch=master)
+<!-- badges: end -->
 
 # heRomod2
 
