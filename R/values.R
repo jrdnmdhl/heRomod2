@@ -26,6 +26,7 @@ as.values <- function(x) x
 
 #' @export
 evaluate_values <- function(df, ns, simplify = F) {
+  names_in_order <- unique(df$name)
   df %>%
     group_by(state) %>%
     group_split() %>%
@@ -33,10 +34,12 @@ evaluate_values <- function(df, ns, simplify = F) {
       state_ns <- eval_variables(x, clone_namespace(ns), T)
       state_res <- state_ns$df
       state_res$state <- x$state[1]
+      names_appearing <- colnames(state_res)
+      names_missing <- setdiff(names_in_order, names_appearing)
+      state_res[ , names_missing] <- 0
       if (simplify) {
         # Transform to matrix to check state-time-dependency
-        
-        state_res <- state_res[ ,c("state", "cycle", "state_cycle", x$name)]
+        state_res <- state_res[ ,c("state", "cycle", "state_cycle", names_in_order)]
         
         val_mat <- state_res %>%
           pivot_longer(names_to = "variable", values_to = "value", all_of(x$name)) %>%
@@ -45,14 +48,13 @@ evaluate_values <- function(df, ns, simplify = F) {
       } else {
         state_res$max_st <- Inf
       }
-      state_res[ ,c("state", "cycle", "state_cycle", "max_st", x$name)]
+      state_res[ ,c("state", "cycle", "state_cycle", "max_st", names_in_order)]
     }) %>%
     bind_rows()
 }
 
 values_to_vmat <- function(df, state_names) {
   value_names <- setdiff(colnames(df), c('state', 'cycle', 'state_cycle', 'max_st'))
-  
   lf <-  df %>%
     pivot_longer(names_to = "variable", values_to = "value", all_of(value_names)) %>%
     mutate(e_state = factor(expand_state_name(state, state_cycle), levels = state_names))
