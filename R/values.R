@@ -13,7 +13,7 @@ parse_values <- function(x, extra_vars) {
         sort_variables(extra_vars)
     }) %>%
     ungroup()
-  
+
   # Construct Object & Return
   as.values(vars)
 }
@@ -25,18 +25,20 @@ check_values_df <- function(x) {
 as.values <- function(x) x
 
 #' @export
-evaluate_values <- function(df, ns, simplify = F) {
+evaluate_values <- function(df, ns, simplify = F, df_only = T) {
   names_in_order <- unique(df$name)
   df %>%
     group_by(state) %>%
     group_split() %>%
     map(function(x) {
-      state_ns <- eval_variables(x, clone_namespace(ns), T)
+      state_ns <- eval_variables(x, clone_namespace(ns), df_only)
       state_res <- state_ns$df
       state_res$state <- x$state[1]
       names_appearing <- colnames(state_res)
       names_missing <- setdiff(names_in_order, names_appearing)
-      state_res[ , names_missing] <- 0
+      if (df_only) {
+        state_res[ , names_missing] <- 0
+      }
       if (simplify) {
         # Transform to matrix to check state-time-dependency
         state_res <- state_res[ ,c("state", "cycle", "state_cycle", names_in_order)]
@@ -51,6 +53,53 @@ evaluate_values <- function(df, ns, simplify = F) {
       state_res[ ,c("state", "cycle", "state_cycle", "max_st", names_in_order)]
     }) %>%
     bind_rows()
+}
+
+#' @export
+evaluate_values2 <- function(df, ns, value_names, state_names, simplify = F) {
+  names_in_order <- unique(df$name)
+  df %>%
+    group_by(state) %>%
+    group_split() %>%
+    map(function(x) {
+      state_ns <- eval_variables(x, clone_namespace(ns), F)
+      state_res <- state_ns$df
+      state_res$state <- x$state[1]
+      value_names_in_df <- intersect(colnames(state_res), value_names)
+      value_names_in_env <-intersect(names(state_ns$env), value_names)
+      value_names_missing <- setdiff(value_names, c(value_names_in_df, value_names_in_env))
+      if (simplify && length(value_names_in_df) > 0) {
+        # Transform to matrix to check state-time-dependency
+        state_res <- state_res[ ,c("state", "cycle", "state_cycle", value_names_in_df)]
+        
+        val_mat <- state_res %>%
+          pivot_longer(names_to = "variable", values_to = "value", all_of(value_names_in_df)) %>%
+          lf_to_arr(c('cycle', 'state_cycle'), 'value')
+        state_res$max_st <- arr_last_unique(val_mat, 2)
+      } else {
+        state_res$max_st <- Inf
+      }
+      state_res$state <- x$state[1]
+
+      expanded_state_res <- state_res %>% 
+        group_by(state_cycle) %>%
+        group_split() %>%
+        map(function(x) {
+          expanded_state_values_list <- append(
+            as.list(x[ ,value_names_in_df]),
+            as.list(state_ns$env)[value_names_in_env]
+          )
+          expanded_state_values_list[value_names_missing] <- 0
+          expanded_state_values_list <- expanded_state_values_list[value_names]
+          x$values_list <- list(expanded_state_values_list)
+
+          x[1, c('state', 'max_st', 'state_cycle', 'values_list')]
+        }) %>%
+        bind_rows()
+      expanded_state_res
+    }) %>%
+    bind_rows() %>%
+    arrange(factor(state, levels = state_names))
 }
 
 values_to_vmat <- function(df, state_names) {

@@ -12,6 +12,11 @@
 #' @importFrom utils capture.output
 NULL
 
+## usethis namespace: start
+#' @useDynLib heRomod2
+## usethis namespace: end
+NULL
+
 heRo_keywords <- c("cycle_length_days", "cycle_length_weeks", "cycle_length_months", "cycle_length_years",
                    "cycle", "day", "week", "month", "year",
                    "cycle_lag", "day_lag", "week_lag", "month_lag", "year_lag",

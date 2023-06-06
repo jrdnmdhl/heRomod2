@@ -27,7 +27,8 @@ Imports:
     glue,
     ggplot2,
     ggraph,
-    tidygraph
+    tidygraph,
+    Rcpp
 License: AGPL-3
 Encoding: UTF-8
 LazyData: true
@@ -35,3 +36,5 @@ Suggests:
     testthat,
     covr
 RoxygenNote: 7.2.3
+LinkingTo: 
+    Rcpp
