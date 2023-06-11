@@ -1,8 +1,8 @@
-parse_values <- function(x, extra_vars) {
+parse_values <- function(x, states, extra_vars) {
   
   # Check that values definition is valid
   check_values_df(x)
-  
+
   # Parse values and sort
   vars <- x %>%
     group_by(state) %>%
@@ -12,7 +12,8 @@ parse_values <- function(x, extra_vars) {
         mutate(formula = map(formula, as.heRoFormula)) %>%
         sort_variables(extra_vars)
     }) %>%
-    ungroup()
+    ungroup() %>%
+    left_join(select(states, name, max_st = max_state_time), by = c('state' = 'name'))
 
   # Construct Object & Return
   as.values(vars)
@@ -68,6 +69,7 @@ evaluate_values2 <- function(df, ns, value_names, state_names, simplify = F) {
       value_names_in_df <- intersect(colnames(state_res), value_names)
       value_names_in_env <-intersect(names(state_ns$env), value_names)
       value_names_missing <- setdiff(value_names, c(value_names_in_df, value_names_in_env))
+
       if (simplify && length(value_names_in_df) > 0) {
         # Transform to matrix to check state-time-dependency
         state_res <- state_res[ ,c("state", "cycle", "state_cycle", value_names_in_df)]
@@ -75,24 +77,22 @@ evaluate_values2 <- function(df, ns, value_names, state_names, simplify = F) {
         val_mat <- state_res %>%
           pivot_longer(names_to = "variable", values_to = "value", all_of(value_names_in_df)) %>%
           lf_to_arr(c('cycle', 'state_cycle'), 'value')
-        state_res$max_st <- arr_last_unique(val_mat, 2)
-      } else {
-        state_res$max_st <- Inf
+        x$max_st <- min(x$max_st[1], arr_last_unique(val_mat, 2))
       }
       state_res$state <- x$state[1]
 
       expanded_state_res <- state_res %>% 
         group_by(state_cycle) %>%
         group_split() %>%
-        map(function(x) {
+        map(function(state_cycle_df) {
           expanded_state_values_list <- append(
-            as.list(x[ ,value_names_in_df]),
+            as.list(state_cycle_df[ ,value_names_in_df]),
             as.list(state_ns$env)[value_names_in_env]
           )
           expanded_state_values_list[value_names_missing] <- 0
           expanded_state_values_list <- expanded_state_values_list[value_names]
           x$values_list <- list(expanded_state_values_list)
-
+          x$state_cycle <- state_cycle_df$state_cycle[1]
           x[1, c('state', 'max_st', 'state_cycle', 'values_list')]
         }) %>%
         bind_rows()

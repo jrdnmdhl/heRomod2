@@ -6,7 +6,7 @@ run_segment <- function(segment, model, env, ...) {
   UseMethod('run_segment', model)
 }
 
-run_segment.markov <- function(segment, model, env, ...) {
+run_segment.markovold <- function(segment, model, env, ...) {
   
   # Capture the extra arguments provided to function
   dots <- list(...)
@@ -21,7 +21,7 @@ run_segment.markov <- function(segment, model, env, ...) {
   uneval_states <- parse_states(model$states, model$settings)
   uneval_vars <- parse_seg_variables(model$variables, segment, trees = model$trees)
   uneval_trans <- parse_trans_markov(model$transitions, uneval_states, uneval_vars)
-  uneval_health_values <- parse_values(model$health_values, uneval_vars)
+  uneval_health_values <- parse_values(model$health_values, uneval_states, uneval_vars)
   #uneval_econ_values <- parse_values(model$economic_values)
   
   # Check inside the variables, transitions, & values for
@@ -29,6 +29,7 @@ run_segment.markov <- function(segment, model, env, ...) {
   # creation of tunnel states
   state_time_use <- check_state_time(
     uneval_vars,
+    uneval_states,
     uneval_trans,
     uneval_health_values,
     uneval_health_values
@@ -88,7 +89,7 @@ run_segment.markov <- function(segment, model, env, ...) {
   segment
 }
 
-run_segment.markov2 <- function(segment, model, env, ...) {
+run_segment.markov <- function(segment, model, env, ...) {
   
   # Capture the extra arguments provided to function
   dots <- list(...)
@@ -102,10 +103,11 @@ run_segment.markov2 <- function(segment, model, env, ...) {
   
   # Parse the specification tables provided for states,
   # variables, transitions, values, and summaries
+
   uneval_states <- parse_states(model$states, model$settings)
   uneval_vars <- parse_seg_variables(model$variables, segment, trees = model$trees)
   uneval_trans <- parse_trans_markov(model$transitions, uneval_states, uneval_vars)
-  uneval_health_values <- parse_values(model$health_values, uneval_vars) # SLOW, 269ms
+  uneval_health_values <- parse_values(model$health_values, uneval_states, uneval_vars) # SLOW, 269ms
   #uneval_econ_values <- parse_values(model$economic_values)
   
   # Check inside the variables, transitions, & values for
@@ -113,6 +115,7 @@ run_segment.markov2 <- function(segment, model, env, ...) {
   # creation of tunnel states
   state_time_use <- check_state_time(
     uneval_vars,
+    uneval_states,
     uneval_trans,
     uneval_health_values,
     uneval_health_values
@@ -126,7 +129,7 @@ run_segment.markov2 <- function(segment, model, env, ...) {
   # values, & summaries.
   eval_vars <- eval_variables(uneval_vars, ns)
   eval_states <- eval_states(uneval_states, eval_vars)
-  eval_trans <- eval_trans_markov_lf(uneval_trans, eval_vars, model$settings$reduce_state_cycle) # 105MB
+  eval_trans <- eval_trans_markov_lf(uneval_trans, eval_vars, state_time_use, model$settings$reduce_state_cycle) # 105MB
   eval_health_values <- evaluate_values2(
     uneval_health_values,
     eval_vars,
@@ -191,14 +194,13 @@ run_segment.markov2 <- function(segment, model, env, ...) {
   #segment$eval_trans <- list(eval_trans_limited)
   #segment$eval_values <- list(eval_health_values_limited)
   segment$inital_state <- list(eval_states)
+  segment$trace_and_values <- list(calculated_trace_and_values)
   # segment$tmat <- list(eval_trans_mat)
   # segment$vmat <- list(eval_health_values_mat)
   #segment$trace <- list(trace = foo)
   # segment$calculated_values <- list(calculated_values)
   segment
 }
-
-
 
 calculate_trace_and_values <- function(init, transitions, values) {
 
@@ -339,7 +341,8 @@ parse_trans_markov <- function(x, states, vars) {
         states,
         name = name,
         to_state_group = state_group,
-        share_state_time = share_state_time
+        share_state_time = share_state_time,
+        max_st = max_state_time
       ),
       by = c('to' = 'name')
     )
@@ -409,7 +412,7 @@ limit_state_time <- function(df, state_time_limits) {
 
 
 #' Evaluate a Longform Transition Matrix
-eval_trans_markov_lf <- function(df, ns, simplify = FALSE) {
+eval_trans_markov_lf <- function(df, ns, state_time_use, simplify = FALSE) {
   
   # Loop through each row in transitions, evaluate, then
   # combine results into a single dataframe
@@ -446,9 +449,9 @@ eval_trans_markov_lf <- function(df, ns, simplify = FALSE) {
       if (simplify) {
         # Transform to matrix to check st-dependency
         val_mat <- lf_to_arr(time_df, c('state_cycle', 'cycle'), 'value')
-        time_df$max_st <- arr_last_unique(val_mat, 1)
+        time_df$max_st <- min(row$max_st, arr_last_unique(val_mat, 1))
       } else {
-        time_df$max_st <- Inf
+        time_df$max_st <- row$max_st
       }
       
       # Return
@@ -589,5 +592,3 @@ as.lf_markov_trans.data.frame <- function(x) {
   class(x) <- c('lf_markov_trans', class(x))
   x
 }
-
-

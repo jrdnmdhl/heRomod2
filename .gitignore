@@ -1,3 +1,4 @@
 env.Rdata
 .DS_Store
 env.RDataTmp*
+~$*.xlsx

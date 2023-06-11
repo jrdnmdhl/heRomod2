@@ -189,7 +189,8 @@ has_st_dependency <- function(x, extras = NULL) {
 }
 
 
-check_state_time <- function(vars, transitions, health_values, econ_values) {
+check_state_time <- function(vars, states, transitions, health_values, econ_values) {
+
   # Identify which vars have references to state time
   st_vars <- vars$name[map_lgl(vars$formula, ~has_st_dependency(.))]
   
@@ -207,7 +208,13 @@ check_state_time <- function(vars, transitions, health_values, econ_values) {
         state = .$state[1],
         uses_st = any(map_lgl(.$formula, ~has_st_dependency(., extras = st_vars)))
       )
-    })
+    }) %>%
+    left_join(select(states, name, max_state_time), by = c('state' = 'name')) %>%
+    transmute(
+      state,
+      uses_st = ifelse(max_state_time > 1 && uses_st, TRUE, FALSE),
+      max_st = ifelse(uses_st, max_state_time, 1)
+    )
   
   st_df
 }

@@ -47,6 +47,7 @@ List MarkovTraceAndValues(NumericMatrix transitions, List values, NumericVector 
         } else {
             if (value == ccons) {
                 value = 1 - cumtransprod;
+                transitions(i, 3) = value;
                 cconsfound++;
                 //Rcout << "Found C" << "\n";
                 if (cconsfound > 1) {
@@ -82,71 +83,45 @@ List MarkovTraceAndValues(NumericMatrix transitions, List values, NumericVector 
         uncondtransprod(i, 1) = from;
         uncondtransprod(i, 2) = tracecomponent;
         trace(cycle, to) = currtracevalue + tracecomponent;
-        // for (int j = 0; j < nvalues; j++) {
 
-        //     //Rcout << "State " << (to + 1) << " of " << values.length() << "\n";
-        //     List values_list = values(to);
-        //     //Rcout << "Value " << (j + 1) << " of " << values_list.length() << "\n";
-        //     if (values_list.length() > 0) {
-        //         double value = 0;
-        //         NumericVector valuevector = values_list(j);
-        //         int valuelength = valuevector.length();
-        //         if (valuelength > 0) {
-        //             if (valuelength > 1) {
-        //                 //Rcout << "Cycle " << cycle << " of " << valuevector.length() << "\n";
-        //                 value = valuevector(cycle - 1);
-        //             } else {
-        //                 value = valuevector(0);
-        //             }
-
-        //             //Rcout << "Writing to index " << (j + nvalues * to + (nvalues + nstates) * (cycle - 1)) << " of " << results.length() << "\n";
-        //             results(j + nvalues * to + (nvalues + nstates) * (cycle - 1)) += tracecomponent * value;
-        //         }
-        //     }
-        // }
-        // Rcout << " value is now : " << trace(cycle, to) << "\n";
         last_from = from;
       
     }
 
     //int index = 0;
+    NumericVector valuevector;
+    List valueslist;
     for (int i = 0; i < nstates; i++) {
-        List valueslist = values(i);
+        valueslist = values(i);
         if (valueslist.length() != 0) {
             for (int j = 0; j < nvalues; j++) {
-                NumericVector valuevector = valueslist(j);
+                valuevector = valueslist(j);
                 int valuevectorlength = valuevector.length();
-                // if (valuevectorlength == 1) {
-                //     valuevector = rep_len(valuevector, ncycles);
-                // }
-                // //double value = valuevector(0);
-                // int startrange = index;
-                // int endrange = index + ncycles - 1;
-                // index += ncycles;
-                // Range rng = Range(startrange, endrange);
-                // //NumericVector rangevector = results(rng);
-                // //rangevector = valuevector * trace(_,i);
-                // //Rcout << "Setting values " << startrange << " to " << endrange << "\n";
-                // NumericMatrix tracesubmatrix = trace(Range(0, ncycles),_);
-                // NumericVector tracecol = tracesubmatrix(_, i);
-
-                // //Rcout << "Trace vector length:  " << tracecol.length() << "\n";
-                // //Rcout << "Values vector length:  " << valuevector.length() << "\n";
-                // results[rng] = valuevector * tracecol;
-                // free(tracesubmatrix);
-                // free(tracecol);
-                // free(rng);
-                // free(valuevector);
-
+                double valuevalue = valuevector(0);
                 for (int k = 0; k < ncycles; k++) {
                     if (valuevectorlength > 1) {
-                        value = valuevector(k);
+                        valuevalue = valuevector(k);
                     }
-                    results(i + j * nstates + k * (nvalues + nstates)) = trace(k, i) * value;
+
+                    // if (k < 3) {
+                    //     Rcout << "state : " << i << "\n";
+                    //     Rcout << "value : " << j << "\n";
+                    //     Rcout << "cycle : " << k << "\n";
+                    //     Rcout << "value of value : " << valuevalue << "\n";
+                    //     Rcout << "trace: " << trace(k, i) << "\n";
+                    //     Rcout << "result of value: " << (trace(k, i) * valuevalue) << "\n";
+                    //     Rcout << "writing to index : " << (k + j * ncycles + k * (ncycles * nstates)) << "\n";
+                    //     Rcout << "__________" << "\n";
+                    //     Rcout << "__________" << "\n";
+                    // }
+                    results(k + i * ncycles + j * (ncycles * nstates)) = (trace(k, i) + trace(k + 1, i)) / 2 * valuevalue;
                 }
             }
         }
     }
 
-    return List::create(trace, uncondtransprod, results);
+    IntegerVector dim = {ncycles, nstates, nvalues};
+    results.attr("dim") = dim;
+
+    return List::create(trace, uncondtransprod, results, transitions);
 }
