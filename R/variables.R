@@ -3,6 +3,7 @@
 parse_seg_variables <- function(x, segment = NULL, trees = NULL,
                                 formula_column = 'formula',
                                 context = 'Variables') {
+
   # Check that all necessary columns are present
   missing_cols <- check_missing_colnames(x, c(vars_def_columns, formula_column, segment_vars))
   if (length(missing_cols) > 0) {
@@ -26,13 +27,14 @@ parse_seg_variables <- function(x, segment = NULL, trees = NULL,
   check_variables_df(df, context = context)
   
   # Parse decision tree variables
-  tree_vars <- parse_tree_vars(trees)
+  tree_vars <- parse_tree_vars(trees) #20ms
   
   # Parse formulas, combine with trees, and sort
-  parse_variables(df, formula_column, context, tree_vars)
+  parse_variables(df, formula_column, context, tree_vars) #40ms
 }
 
 parse_variables <- function(x, formula_column = 'formula', context = 'Variables', extras = NULL) {
+
   # Check that all necessary columns are present
   missing_cols <- check_missing_colnames(x, c(vars_def_columns, formula_column))
   if (length(missing_cols) > 0) {
@@ -77,8 +79,9 @@ parse_variables <- function(x, formula_column = 'formula', context = 'Variables'
 }
 
 # Sort a dataframe of variables based on dependency tree
+# CONVERT_TO_CPP
 sort_variables <- function(x, extra_vars = NULL) {
-  
+
   # Deal with extra vars if given
   if (is.null(extra_vars)) {
     extras <- list()

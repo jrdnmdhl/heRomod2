@@ -1,11 +1,11 @@
 
 
 
-parse_states <- function(states, settings) {
+parse_states <- function(states, cycle_length_days, days_per_year) {
   
   # Check that variables definition is valid
   check_states(states)
-  
+
   # If state time limit is unspecified, assume infinite
   states$state_cycle_limit <- ifelse(
     is.na(states$state_cycle_limit),
@@ -25,7 +25,7 @@ parse_states <- function(states, settings) {
     mutate(
       formula = map(initial_probability, as.heRoFormula),
       max_state_time = ceiling(
-        days_per_unit(state_cycle_limit_unit, settings) * state_cycle_limit / get_cycle_length_days(settings)
+        ceiling(days_per_unit(state_cycle_limit_unit, cycle_length_days, days_per_year) * state_cycle_limit / cycle_length_days)
       ),
       state_group = ifelse(is.na(state_group), paste0('.', name), state_group),
       share_state_time = ifelse(is.na(share_state_time), F, share_state_time)
@@ -57,7 +57,8 @@ eval_states <- function(x, ns) {
 }
 
 expand_init_states <- function(x, expand) {
-  n_states_exp <- sum(expand$max_st)
+
+  n_states_exp <- sum(ifelse(is.na(expand$max_st), 1, expand$max_st))
   init_mat <- matrix(numeric(n_states_exp), nrow = 1)
   col_names <- character(n_states_exp)
   index <- 1
@@ -72,6 +73,7 @@ expand_init_states <- function(x, expand) {
     index <- max(indices) + 1
   }
   colnames(init_mat) <- col_names
+      
   init_mat
 }
 

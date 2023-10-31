@@ -1,16 +1,15 @@
 
 get_cycle_length_days <- function(settings) {
-  
+
   # Extract cycle length & unit from settings
-  cl_unit <- settings[[cl_unit_code]]
+  cl_unit <- settings$cycle_length_unit
   if (cl_unit == 'Cycles') {
     # Can't define cycle length in terms of cycles!
-    stop('Error: Cannot define cycle length in terms of a number of cycles, please select another unit.', call. = F)
+    stop('Error: Cannot define cycle length in terms of a number of cycles, please select another unit.', call. = FALSE)
   }
   
-  days_per_cl_unit <- days_per_unit(cl_unit, settings)
-  cl <- as.numeric(settings[[cl_code]])
-  
+  days_per_cl_unit <- days_per_unit(cl_unit, settings$cycle_length_days, settings$days_per_year)
+  cl <- settings$cycle_length
   # Calculate cycle length
   cl * days_per_cl_unit
 }
@@ -26,40 +25,36 @@ get_days_per_year <- function(settings) {
 
 get_n_cycles <- function(settings) {
   
+
   # Extract timeframe & unit
-  tf_unit <- settings[[tf_unit_code]]
-  tf <- as.numeric(settings[[tf_code]])
+  tf_unit <- settings$timeframe_unit
+  tf <- settings$timeframe
   
   # Extract cycle length & unit
-  cl_unit <- settings[[cl_unit_code]]
-  cl <- as.numeric(settings[[cl_code]])
+  cl_unit <- settings$cycle_length_unit
+  cl <- settings$cycle_length
   
   # Calculate days per timeframe/cycle length unit
-  days_per_tf_unit <- days_per_unit(tf_unit, settings)
-  days_per_cl_unit <- days_per_unit(cl_unit, settings)
+  days_per_tf_unit <- days_per_unit(tf_unit, settings$cycle_length_days, settings$days_per_year)
+  days_per_cl_unit <- days_per_unit(cl_unit, settings$cycle_length_days, settings$days_per_year)
   
   # Calculate number of cycles
-  floor((tf * days_per_tf_unit) / (cl * days_per_cl_unit))
+  ceiling((tf * days_per_tf_unit) / (cl * days_per_cl_unit))
 }
 
-days_per_unit <- function(unit, settings) {
-  if (any(unit == 'Cycles')) {
-    cl = get_cycle_length_days(settings)
-  } else {
-    cl = NA
-  }
+days_per_unit <- function(unit, cycle_length_days, days_per_year) {
   vswitch(
     unit,
     "Days" = 1,
     "Weeks" = 7,
-    "Months" = 365/12,
-    "Years" = 365,
-    'Cycles' = cl
+    "Months" = days_per_year / 12,
+    "Years" = days_per_year,
+    'Cycles' = cycle_length_days
   )
 }
 
 convert_time <- function(x, from, to, settings) {
-  x * days_per_unit(from, settings) / days_per_unit (to, settings)
+  x * days_per_unit(from, settings$cycle_length_days, settings$days_per_year) / days_per_unit (to, settings$cycle_length_days, settings$days_per_year)
 }
 
 # Generate time variables
@@ -67,7 +62,7 @@ time_variables <- function(settings, states) {
   n_cycles <- get_n_cycles(settings)
   cl <- get_cycle_length_days(settings)
   st_days_max <- max(
-    days_per_unit(states$state_cycle_limit_unit, settings) *
+    days_per_unit(states$state_cycle_limit_unit, settings$cycle_length_days, settings$days_per_year) *
       as.numeric(states$state_cycle_limit)
   )
   st_cycles <- min(n_cycles, max(1, floor(st_days_max / cl)))
@@ -100,13 +95,13 @@ time_variables <- function(settings, states) {
 }
 
 # Generate cycle length variables
-cl_variables <- function(settings) {
+cycle_length_variables <- function(settings) {
   cl <- get_cycle_length_days(settings)
   tibble(
     cycle_length_days = cl,
-    cycle_length_weeks = convert_time(cycle_length_days, from = 'Days', to = 'Weeks', settings),
-    cycle_length_months = convert_time(cycle_length_days, from = 'Days', to = 'Months', settings),
-    cycle_length_years = convert_time(cycle_length_days, from = 'Days', to = 'Years', settings)
+    cycle_length_weeks = convert_time(cl, from = 'Days', to = 'Weeks', settings),
+    cycle_length_months = convert_time(cl, from = 'Days', to = 'Months', settings),
+    cycle_length_years = convert_time(cl, from = 'Days', to = 'Years', settings)
   )
 }
 

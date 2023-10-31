@@ -6,108 +6,18 @@ run_segment <- function(segment, model, env, ...) {
   UseMethod('run_segment', model)
 }
 
-run_segment.markovold <- function(segment, model, env, ...) {
-  
-  # Capture the extra arguments provided to function
-  dots <- list(...)
-  
-  # Count the required number of model cycles and the
-  # cycle length in days
-  n_cycles <- get_n_cycles(model$settings)
-  cycle_length_days <- get_cycle_length_days(model$settings)
-  
-  # Parse the specification tables provided for states,
-  # variables, transitions, values, and summaries
-  uneval_states <- parse_states(model$states, model$settings)
-  uneval_vars <- parse_seg_variables(model$variables, segment, trees = model$trees)
-  uneval_trans <- parse_trans_markov(model$transitions, uneval_states, uneval_vars)
-  uneval_health_values <- parse_values(model$health_values, uneval_states, uneval_vars)
-  #uneval_econ_values <- parse_values(model$economic_values)
-  
-  # Check inside the variables, transitions, & values for
-  # any state-time dependency since this will inform the
-  # creation of tunnel states
-  state_time_use <- check_state_time(
-    uneval_vars,
-    uneval_states,
-    uneval_trans,
-    uneval_health_values,
-    uneval_health_values
-  )
-
-  # Create a "namespace" which will contain evaluated
-  # variables so that they can be referenced.
-  ns <- create_namespace(model, segment)
-  
-  # Evaluate variables, initial state probabilities, transitions,
-  # values, & summaries.
-  eval_vars <- eval_variables(uneval_vars, ns)
-  eval_states <- eval_states(uneval_states, eval_vars)
-  eval_trans <- eval_trans_markov_lf(uneval_trans, eval_vars, model$settings$reduce_state_cycle)
-  eval_health_values <- evaluate_values(uneval_health_values, eval_vars, model$settings$reduce_state_cycle)
-  
-  # Determine the number of tunnel states that need to be created
-  # for each state.
-  st_maxes <- rbind(
-    rename(eval_trans[ , c('from', 'max_st')], state = from),
-    eval_health_values[ , c('state', 'max_st')]
-  ) %>%
-    group_by(state) %>%
-    summarize(max_st = max(max_st))
-  
-  # Remove any calculated values for transitions & values that are
-  # not needed.
-  eval_trans_limited <- select(eval_trans, -max_st) %>%
-    left_join(st_maxes, by = c('from' = 'state')) %>%
-    filter(state_cycle <= max_st)
-  eval_health_values_limited <- select(eval_health_values, -max_st) %>%
-    left_join(st_maxes, by = c('state' = 'state')) %>%
-    filter(state_cycle <= max_st)
-  
-  # Transform transitions and values to matrices.
-  eval_trans_mat <- lf_to_tmat(eval_trans_limited)
-  expanded_state_names <- dimnames(eval_trans_mat)[[2]]
-  eval_health_values_mat <- values_to_vmat(eval_health_values_limited, expanded_state_names)
-  
-  # Calculate Trace Probabilities
-  expand_init <- expand_init_states(eval_states, st_maxes)
-  trace <- markov_trace(expand_init, eval_trans_mat)
-
-  calculated_values <- markov_values(trace, eval_health_values_mat)
-  
-  # Create the object to return that will summarize the results of
-  # this segment.
-  segment$uneval_vars <- list(uneval_vars)
-  segment$eval_vars <- list(eval_vars)
-  segment$eval_trans <- list(eval_trans_limited)
-  segment$eval_values <- list(eval_health_values_limited)
-  segment$inital_state <- list(eval_states)
-  segment$tmat <- list(eval_trans_mat)
-  #segment$vmat <- list(eval_health_values_mat)
-  segment$trace <- list(trace)
-  segment$calculated_values <- list(calculated_values)
-  segment
-}
-
 run_segment.markov <- function(segment, model, env, ...) {
-  
+
   # Capture the extra arguments provided to function
   dots <- list(...)
-  
-  # Count the required number of model cycles and the
-  # cycle length in days
-  n_cycles <- get_n_cycles(model$settings)
-  cycle_length_days <- get_cycle_length_days(model$settings)
-  value_names <- unique(model$health_values$name)
-  state_names <- model$state$name
-  
+
   # Parse the specification tables provided for states,
   # variables, transitions, values, and summaries
 
-  uneval_states <- parse_states(model$states, model$settings)
-  uneval_vars <- parse_seg_variables(model$variables, segment, trees = model$trees)
-  uneval_trans <- parse_trans_markov(model$transitions, uneval_states, uneval_vars)
-  uneval_health_values <- parse_values(model$health_values, uneval_states, uneval_vars) # SLOW, 269ms
+  uneval_states <- parse_states(model$states, model$cycle_length_days, model$settings$days_per_year) #10ms
+  uneval_vars <- parse_seg_variables(model$variables, segment, trees = model$trees) #64ms  - IMPROVE BY CONVERTING SORT to RCPP
+  uneval_trans <- parse_trans_markov(model$transitions, uneval_states, uneval_vars) #18ms
+  uneval_values <- parse_values(model$values, uneval_states, uneval_vars) # 18ms - IMPROVE BY CONVERTING SORT to RCPP
   #uneval_econ_values <- parse_values(model$economic_values)
   
   # Check inside the variables, transitions, & values for
@@ -117,88 +27,42 @@ run_segment.markov <- function(segment, model, env, ...) {
     uneval_vars,
     uneval_states,
     uneval_trans,
-    uneval_health_values,
-    uneval_health_values
-  )
-
+    uneval_values
+  ) # 11ms
+  
   # Create a "namespace" which will contain evaluated
   # variables so that they can be referenced.
   ns <- create_namespace(model, segment)
   
   # Evaluate variables, initial state probabilities, transitions,
   # values, & summaries.
-  eval_vars <- eval_variables(uneval_vars, ns)
-  eval_states <- eval_states(uneval_states, eval_vars)
-  eval_trans <- eval_trans_markov_lf(uneval_trans, eval_vars, state_time_use, model$settings$reduce_state_cycle) # 105MB
-  eval_health_values <- evaluate_values2(
-    uneval_health_values,
+  eval_vars <- eval_variables(uneval_vars, ns) # 50ms - HARD TO IMPROVE
+  eval_states <- eval_states(uneval_states, eval_vars) # <1 ms
+  eval_trans <- eval_trans_markov_lf(uneval_trans, eval_vars, state_time_use, model$settings$reduce_state_cycle) #3ms
+
+  value_names <- unique(model$values$name)
+  state_names <- unique(model$states$name)
+
+  eval_values <- evaluate_values(
+    uneval_values,
     eval_vars,
     value_names,
     state_names,
     as.logical(model$settings$reduce_state_cycle)
-  )
+  ) #6ms
 
   calculated_trace_and_values <- calculate_trace_and_values(
     eval_states,
     eval_trans,
-    eval_health_values
-  )
-  
-  # Determine the number of tunnel states that need to be created
-  # for each state.
-  # st_maxes <- rbind(
-  #   rename(eval_trans[ , c('from', 'max_st')], state = from),
-  #   eval_health_values[ , c('state', 'max_st')]
-  # ) %>%
-  #   group_by(state) %>%
-  #   summarize(max_st = max(max_st)) %>%
-  #   mutate(max_st = ifelse(is.infinite(max_st), n_cycles, max_st))
-  
-  # Remove any calculated values for transitions & values that are
-  # not needed.
-  # eval_trans_limited <- select(eval_trans, -max_st) %>%
-  #   left_join(st_maxes, by = c('from' = 'state')) %>%
-  #   filter(state_cycle <= max_st)
-  # eval_health_values_limited <- select(eval_health_values, -max_st) %>%
-  #   left_join(st_maxes, by = c('state' = 'state')) %>%
-  #   filter(state_cycle <= max_st)
-  
-  # Transform transitions and values to matrices.
-  # eval_trans_mat <- lf_to_tmat(eval_trans_limited)
-  # expanded_state_names <- dimnames(eval_trans_mat)[[2]]
-  # eval_health_values_mat <- values_to_vmat(eval_health_values_limited, expanded_state_names)
-  
-  # # Calculate Trace Probabilities
-  # expand_init <- expand_init_states(eval_states, st_maxes)
-
-  # state_names_in_order <- colnames(expand_init)
-
-  # trans_lf_mat <- lf_to_lf_mat(eval_trans_limited)
-
-  # foo <- MarkovTraceAndValues(
-  #   trans_lf_mat,
-  #   as.numeric(expand_init),
-  #   as.integer(n_cycles),
-  #   as.integer(length(expand_init)),
-  #   #as.integer(ncol(eval_health_values_limited) - 3),
-  #   -pi
-  # )
-
-  # trace <- markov_trace(expand_init, eval_trans_mat)
-  # calculated_values <- markov_values(trace, eval_health_values_mat)
+    eval_values
+  ) #11ms
   
   # Create the object to return that will summarize the results of
   # this segment.
   segment$uneval_vars <- list(uneval_vars)
   segment$eval_vars <- list(eval_vars)
-  #segment$eval_trans <- list(eval_trans_limited)
-  #segment$eval_values <- list(eval_health_values_limited)
   segment$inital_state <- list(eval_states)
   segment$trace_and_values <- list(calculated_trace_and_values)
-  # segment$tmat <- list(eval_trans_mat)
-  # segment$vmat <- list(eval_health_values_mat)
-  #segment$trace <- list(trace = foo)
-  # segment$calculated_values <- list(calculated_values)
   segment
 }
 
@@ -208,13 +72,7 @@ calculate_trace_and_values <- function(init, transitions, values) {
   n_cycles <- max(transitions$cycle)
 
   # Calculate maximum number of tunnels needed for each state
-  st_maxes <- rbind(
-    rename(transitions[ , c('from', 'max_st')], state = from),
-    values[ , c('state', 'max_st')]
-  ) %>%
-    group_by(state) %>%
-    summarize(max_st = max(max_st)) %>%
-    mutate(max_st = ifelse(is.infinite(max_st), n_cycles, max_st))
+  st_maxes <- get_st_max(transitions, values, n_cycles)
 
   # Expand initial state probabilities to include tunnel states
   expand_init <- expand_init_states(init, st_maxes)
@@ -230,7 +88,7 @@ calculate_trace_and_values <- function(init, transitions, values) {
   # Filter values to only include required tunnel states
   eval_values_limited <- select(values, -max_st) %>%
     left_join(st_maxes, by = c('state' = 'state')) %>%
-    filter(state_cycle <= max_st) %>%
+    filter(!is.na(state), state_cycle <= max_st) %>%
     mutate(state = expand_state_name(state, state_cycle))
 
   # Create a list containing values list for each state
@@ -250,7 +108,6 @@ calculate_trace_and_values <- function(init, transitions, values) {
     as.integer(n_cycles),
     as.integer(length(expand_init)),
     length(eval_values_limited$values_list[[1]]),
-    #as.integer(ncol(eval_health_values_limited) - 3),
     -pi
   )
 
@@ -258,51 +115,23 @@ calculate_trace_and_values <- function(init, transitions, values) {
 
 }
 
-markov_trace <- function(init, trans_matrix) {
-  matrix_dims <- dim(trans_matrix)
-  n_cycles <- matrix_dims[1]
-  n_states <- matrix_dims[2]
-  state_names <- names(init)
+get_st_max <- function(trans, values, n_cycles) {
 
-
-  init_mat <- diag(as.numeric(init), ncol = n_states, nrow = n_states)
-  
-  # Do element-wise multiplication to get the numbers
-  # undergoing each transition
-  uncond_trans <- array(0, c(n_states, n_states, n_cycles + 1))
-  dimnames(uncond_trans) <- list(
-    state_names,
-    state_names,
-    NULL
-  )
-  uncond_trans[ , , 1] <- init_mat
-  for(i in seq_len(n_cycles)) {
-    uncond_trans[ , , i + 1] <- colSums(uncond_trans[ , , i]) * trans_matrix[i, , ]
-  }
-  
-  # Sum over columns to get trace
-  trace_mat <- t(colSums(uncond_trans, dims = 1))
-  colnames(trace_mat) <- state_names
-
-
-  res_list <- list(
-    trace = trace_mat,
-    uncond_trans = uncond_trans
+  # Combine transitions and values into a single data frame
+  combined_transitions_and_values <- rbind(
+    rename(trans[ , c('from', 'max_st')], state = from),
+    filter(values, !is.na(state))[ , c('state', 'max_st')]
   )
 
-  res_list
-}
+  # Group by state and get the maximum state time. For any
+  # states where the maximum is infinite, set it to the
+  # maximum number of cycles
+  st_maxes <- combined_transitions_and_values %>%
+    group_by(state) %>%
+    summarize(max_st = max(max_st)) %>%
+    mutate(max_st = ifelse(is.infinite(max_st), n_cycles, max_st))
 
-markov_values <- function(trace, eval_values) {
-  value_dims <- dim(eval_values)
-  n_values <- value_dims[3]
-
-  # Make trace into compatibly shaped 3d array
-  trace_arr <- array(rep(trace$trace[-(value_dims[1] + 1)], n_values), dim = value_dims)
-
-  calc_values <- rowSums(trace_arr * eval_values, dim = 2L)
-
-  return(calc_values)
+  st_maxes
 }
 
 # Markov

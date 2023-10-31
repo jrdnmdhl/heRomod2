@@ -8,13 +8,14 @@ parse_values <- function(x, states, extra_vars) {
     group_by(state) %>%
     do({
       as.data.frame(.) %>%
-        select(name, display_name, description, state, formula) %>%
+        select(name, display_name, description, state, destination, formula) %>%
         mutate(formula = map(formula, as.heRoFormula)) %>%
         sort_variables(extra_vars)
     }) %>%
     ungroup() %>%
-    left_join(select(states, name, max_st = max_state_time), by = c('state' = 'name'))
-
+    left_join(select(states, name, max_st = max_state_time), by = c('state' = 'name')) %>%
+    mutate(max_st = ifelse(is.na(max_st), 1, max_st))
+  
   # Construct Object & Return
   as.values(vars)
 }
@@ -26,40 +27,10 @@ check_values_df <- function(x) {
 as.values <- function(x) x
 
 #' @export
-evaluate_values <- function(df, ns, simplify = F, df_only = T) {
-  names_in_order <- unique(df$name)
-  df %>%
-    group_by(state) %>%
-    group_split() %>%
-    map(function(x) {
-      state_ns <- eval_variables(x, clone_namespace(ns), df_only)
-      state_res <- state_ns$df
-      state_res$state <- x$state[1]
-      names_appearing <- colnames(state_res)
-      names_missing <- setdiff(names_in_order, names_appearing)
-      if (df_only) {
-        state_res[ , names_missing] <- 0
-      }
-      if (simplify) {
-        # Transform to matrix to check state-time-dependency
-        state_res <- state_res[ ,c("state", "cycle", "state_cycle", names_in_order)]
-        
-        val_mat <- state_res %>%
-          pivot_longer(names_to = "variable", values_to = "value", all_of(x$name)) %>%
-          lf_to_arr(c('cycle', 'state_cycle'), 'value')
-        state_res$max_st <- arr_last_unique(val_mat, 2)
-      } else {
-        state_res$max_st <- Inf
-      }
-      state_res[ ,c("state", "cycle", "state_cycle", "max_st", names_in_order)]
-    }) %>%
-    bind_rows()
-}
+evaluate_values <- function(df, ns, value_names, state_names, simplify = F) {
 
-#' @export
-evaluate_values2 <- function(df, ns, value_names, state_names, simplify = F) {
   names_in_order <- unique(df$name)
-  df %>%
+  evaluated_values <- df %>%
     group_by(state) %>%
     group_split() %>%
     map(function(x) {
@@ -100,6 +71,8 @@ evaluate_values2 <- function(df, ns, value_names, state_names, simplify = F) {
     }) %>%
     bind_rows() %>%
     arrange(factor(state, levels = state_names))
+
+  evaluated_values
 }
 
 values_to_vmat <- function(df, state_names) {

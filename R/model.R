@@ -55,8 +55,14 @@ parse_model <- function(model, ...) {
     model$groups <- create_default_group()
   }
 
-  # Reformat settings as a list
-  model$settings <- parse_settings(model$settings)
+  model$names <- list(
+    states = unique(model$states$name),
+    strategies = unique(model$strategies$name),
+    values = unique(model$values$name)
+  )
+
+  model$n_cycles <- get_n_cycles(model$settings)
+  model$cycle_length_days <- get_cycle_length_days(model$settings)
 
   # Set the class of the object based on model type
   class(model) <- c(model$settings$model_type, 'list')

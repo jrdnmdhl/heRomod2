@@ -1,14 +1,29 @@
 #' @export
 read_model <- function(path) {
+
   model <- read_workbook(file.path(path, 'model.xlsx'))
+
   model$tables <- list.files(file.path(path, 'data')) %>%
     purrr::set_names(., gsub('.csv$', '', .)) %>%
     purrr::map(~read.csv(file.path(path, 'data', .), stringsAsFactor = F, check.names = F))
+
   model$scripts <- list.files(file.path(path, 'scripts')) %>%
     purrr::set_names(., gsub('.R$', '', ., fixed = T)) %>%
     purrr::map(~readr::read_file(file.path(path,'scripts', .)))
+
+  model$settings <- convert_settings_from_xlsx(model$settings)
   
   define_object_(model, 'heRomodel')
+}
+
+convert_settings_from_xlsx <- function(settings_df) {
+  settings <- map(settings_df$value, function(x) {
+    num <- suppressWarnings(as.numeric(x))
+    if (is.na(num)) return(x)
+    num
+  })
+  names(settings) <- settings_df$setting
+  settings
 }
 
 
@@ -26,19 +41,6 @@ read_workbook <- function(path) {
   sheet_names <- getSheetNames(path)
   names(sheet_names) <- sheet_names
   lapply(sheet_names, function(x) as_tibble(readWorkbook(path, sheet = x)))
-}
-
-#' @export
-read_model <- function(path) {
-  model <- read_workbook(glue('{path}/model.xlsx'))
-  model$tables <- list.files(glue('{path}/data')) %>%
-    purrr::set_names(., gsub('.csv', '', ., fixed = T)) %>%
-    purrr::map(~read.csv(glue('{path}/data/{.}'), stringsAsFactor = F, check.names = F))
-  model$scripts <- list.files(glue('{path}/scripts')) %>%
-    purrr::set_names(., gsub('.R', '', ., fixed = T)) %>%
-    purrr::map(~readr::read_file(glue('{path}/scripts/', .)))
-  class(model) <- "heRoModel"
-  return(model)
 }
 
 define_object <- function(..., class) {
@@ -189,7 +191,7 @@ has_st_dependency <- function(x, extras = NULL) {
 }
 
 
-check_state_time <- function(vars, states, transitions, health_values, econ_values) {
+check_state_time <- function(vars, states, transitions, values) {
 
   # Identify which vars have references to state time
   st_vars <- vars$name[map_lgl(vars$formula, ~has_st_dependency(.))]
@@ -199,8 +201,7 @@ check_state_time <- function(vars, states, transitions, health_values, econ_valu
   st_df <- select(transitions, from, formula) %>%
     rename(state = from) %>%
     rbind(
-      select(health_values, state, formula),
-      select(econ_values, state, formula)
+      select(values, state, formula)
     ) %>%
     group_by(state) %>%
     do({
@@ -217,14 +218,6 @@ check_state_time <- function(vars, states, transitions, health_values, econ_valu
     )
   
   st_df
-}
-
-parse_settings <- function(settings) {
-  # Convert the settings table into a named
-  # list.
-  settings$value %>%
-    as.list() %>%
-    setNames(settings$setting)
 }
 
 #' Generate List of Names for Error Messages
