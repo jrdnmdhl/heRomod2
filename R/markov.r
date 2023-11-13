@@ -100,16 +100,28 @@ calculate_trace_and_values <- function(init, transitions, values) {
   # Have values sorted properly and make sure all are represented in each list, and list is ordered by states, and correct names are applied
   # 
 
-  # Calculate trace and values in rcpp
-  foo <- MarkovTraceAndValues(
+  bar <- cppMarkovTrace(
     trans_lf_mat,
-    values_list_of_lists,
     as.numeric(expand_init),
     as.integer(n_cycles),
     as.integer(length(expand_init)),
-    length(eval_values_limited$values_list[[1]]),
     -pi
   )
+
+  print(bar)
+
+  foo <- 1
+
+  # Calculate trace and values in rcpp
+  # foo <- MarkovTraceAndValues(
+  #   trans_lf_mat,
+  #   values_list_of_lists,
+  #   as.numeric(expand_init),
+  #   as.integer(n_cycles),
+  #   as.integer(length(expand_init)),
+  #   length(eval_values_limited$values_list[[1]]),
+  #   -pi
+  # )
 
   foo
 

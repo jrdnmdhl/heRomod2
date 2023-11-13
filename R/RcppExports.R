@@ -5,3 +5,7 @@ MarkovTraceAndValues <- function(transitions, values, init, ncycles, nstates, nv
     .Call('_heRomod2_MarkovTraceAndValues', PACKAGE = 'heRomod2', transitions, values, init, ncycles, nstates, nvalues, ccons)
 }
 
+cppMarkovTrace <- function(transitions, initialProbs, nCycles, nStates, complementConstant) {
+    .Call('_heRomod2_cppMarkovTrace', PACKAGE = 'heRomod2', transitions, initialProbs, nCycles, nStates, complementConstant)
+}
+
