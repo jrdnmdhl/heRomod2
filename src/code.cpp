@@ -125,25 +125,49 @@ List MarkovTraceAndValues(NumericMatrix transitions, List values, NumericVector 
 }
 
 /*
-cppMarkovTrace
+cppMarkovTransitionsAndTrace
 
-Calculates the 
+Fills out the complementary probabilities in transition matrix and
+calculates the trace and unconditional transition probabilities. Any
+errors identified in transition matrix are skipped over but reported
+in results.
+
 */
 // [[Rcpp::export]]
-List cppMarkovTrace(
+List cppMarkovTransitionsAndTrace(
     NumericMatrix transitions,
     NumericVector initialProbs,
+    CharacterVector stateNames,
     int nCycles,
     int nStates,
     double complementConstant
 ) {
 
+    // Set up a few R functions to call
+    Environment base = Environment::namespace_env("base");
+    Function seq = base["seq"];
+    Function asCharacter = base["as.character"];
+
     int transRows = transitions.nrow();
 
-    // Define data structures for return
-    Rcpp::NumericMatrix trace(nCycles + 1, nStates); // trace without half-cycle correction
+    // Define matrix to store trace probabilities &
+    // set row/column names.
+    Rcpp::NumericMatrix trace(nCycles + 1, nStates);
+    colnames(trace) = stateNames;
+    rownames(trace) = asCharacter(
+        seq(
+            Named("from") = 0,
+            Named("to") = nCycles,
+            Named("by") = 1
+        )
+    );
+
+    // Define matrix to store the table of unconditional transition probabilities
     Rcpp::NumericMatrix uncondTransProbs(transRows, 4); // Unconditional probabilities of transtitions
-    Rcpp::BooleanMatrix transitionErrors(transRows, 4); // Store errors related to transition matrix,
+    colnames(uncondTransProbs) = CharacterVector::create("cycle", "from", "to", "value");
+
+    Rcpp::LogicalMatrix transitionErrors(transRows, 4); // Store errors related to transition matrix,
+    colnames(transitionErrors) = CharacterVector::create("complement", "outsideBounds", "sumNotEqualOne", "NaOrNaN");
     // columns: ComplementErrors, OutsideBoundsErrors, SumNotEqualOneErrors, NAOrNaNError
 
     DebugPrintValue("Number of rows", trace.nrow());
@@ -213,7 +237,7 @@ List cppMarkovTrace(
                     transitionErrors(currentTransitionsRow, 0) = complementsFoundInState > 1;
                     transitionErrors(currentTransitionsRow, 1) = (value > 1) || (value < 0);
                     transitionErrors(currentTransitionsRow, 2) = cumulativeProbability > 1;
-                    transitionErrors(currentTransitionsRow, 3) = is_na(value) || is_nan(value);
+                    transitionErrors(currentTransitionsRow, 3) = std::isnan(value);
                 }
 
                 // Check if it is time to move to the next set of transitions
@@ -252,7 +276,7 @@ List cppMarkovTrace(
 
                 transitionErrors(complementRowIndex, 1) = (complementValue > 1) || (complementValue < 0);
                 transitionErrors(complementRowIndex, 2) = cumulativeProbability > 1;
-                transitionErrors(complementRowIndex, 3) = is_na(complementValue) || is_nan(complementValue);
+                transitionErrors(complementRowIndex, 3) = std::isnan(complementValue);
             }
 
             // Reset everything for move to next set of transitions

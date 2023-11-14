@@ -27,25 +27,26 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cppMarkovTrace
-List cppMarkovTrace(NumericMatrix transitions, NumericVector initialProbs, int nCycles, int nStates, double complementConstant);
-RcppExport SEXP _heRomod2_cppMarkovTrace(SEXP transitionsSEXP, SEXP initialProbsSEXP, SEXP nCyclesSEXP, SEXP nStatesSEXP, SEXP complementConstantSEXP) {
+// cppMarkovTransitionsAndTrace
+List cppMarkovTransitionsAndTrace(NumericMatrix transitions, NumericVector initialProbs, CharacterVector stateNames, int nCycles, int nStates, double complementConstant);
+RcppExport SEXP _heRomod2_cppMarkovTransitionsAndTrace(SEXP transitionsSEXP, SEXP initialProbsSEXP, SEXP stateNamesSEXP, SEXP nCyclesSEXP, SEXP nStatesSEXP, SEXP complementConstantSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type transitions(transitionsSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type initialProbs(initialProbsSEXP);
+    Rcpp::traits::input_parameter< CharacterVector >::type stateNames(stateNamesSEXP);
     Rcpp::traits::input_parameter< int >::type nCycles(nCyclesSEXP);
     Rcpp::traits::input_parameter< int >::type nStates(nStatesSEXP);
     Rcpp::traits::input_parameter< double >::type complementConstant(complementConstantSEXP);
-    rcpp_result_gen = Rcpp::wrap(cppMarkovTrace(transitions, initialProbs, nCycles, nStates, complementConstant));
+    rcpp_result_gen = Rcpp::wrap(cppMarkovTransitionsAndTrace(transitions, initialProbs, stateNames, nCycles, nStates, complementConstant));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
     {"_heRomod2_MarkovTraceAndValues", (DL_FUNC) &_heRomod2_MarkovTraceAndValues, 7},
-    {"_heRomod2_cppMarkovTrace", (DL_FUNC) &_heRomod2_cppMarkovTrace, 5},
+    {"_heRomod2_cppMarkovTransitionsAndTrace", (DL_FUNC) &_heRomod2_cppMarkovTransitionsAndTrace, 6},
     {NULL, NULL, 0}
 };
 
