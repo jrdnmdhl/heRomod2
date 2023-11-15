@@ -5,7 +5,7 @@ model <- system.file("models", "checkimab_simple", package = "heRomod2") %>%
 
 test_that('markov trace calculations work success case', {
   mat1 <- as.matrix(
-    tribble(
+    tibble::tribble(
       ~cycle, ~from, ~to, ~value,
            1,     1,   2,   0.25,
            1,     1,   3,   0.15,
@@ -57,10 +57,16 @@ test_that('markov trace calculations work success case', {
     3,
     -pi
   )
-
-  res$uncondTransProb
   
   expect_equal(res$trace, expected_trace)
+
+  transitionsSumsByStateAndCycle <- res$transitions %>%
+    as.data.frame() %>%
+    group_by(cycle, from) %>%
+    summarize(sum = sum(value))
+
+
+  expect_equal(transitionsSumsByStateAndCycle$sum, rep(1, 9))
 
   uncondTransProbSumsByCycle <- res$uncondtransprod %>%
     as.data.frame() %>%
@@ -72,10 +78,9 @@ test_that('markov trace calculations work success case', {
 
 })
 
-## WIP!
-test_that('markov trace calculations work complement error', {
+test_that('markov trace calculations work with complement error', {
   mat1 <- as.matrix(
-    tribble(
+    tibble::tribble(
       ~cycle, ~from, ~to, ~value,
            1,     1,   2,   0.25,
            1,     1,   3,   0.15,
@@ -119,7 +124,7 @@ test_that('markov trace calculations work complement error', {
   expected_trace[3, ] <- expected_trace[2, ] %*% mat1_c23
   expected_trace[4, ] <- expected_trace[3, ] %*% mat1_c23
 
-  res <- cppMarkovTransitionsAndTrace(
+  res <- heRomod2:::cppMarkovTransitionsAndTrace(
     mat1,
     init1,
     statenames1,
@@ -127,16 +132,225 @@ test_that('markov trace calculations work complement error', {
     3,
     -pi
   )
-  
-  expect_equal(res$trace, expected_trace)
 
-  uncondTransProbSumsByCycle <- res$uncondtransprod %>%
-    as.data.frame() %>%
-    group_by(cycle) %>%
-    summarize(sum = sum(value))
+  error_states_cycles <- as.data.frame(res$errors) %>%
+    mutate(cycle = res$transitions[,1], from = res$transitions[,2]) %>%
+    group_by(cycle, from) %>%
+    summarize(complement = any(complement)) %>%
+    filter(complement) %>%
+    ungroup()
 
-  expect_equal(uncondTransProbSumsByCycle$sum, c(1, 1, 1))
-  expect_equal(!any(res$errors), TRUE)
+  expect_equal(
+    error_states_cycles,
+    tibble(cycle = c(1, 3), from = c(2, 2), complement = c(TRUE, TRUE))
+  )
+
+})
+
+test_that('markov trace calculations work with bounds error', {
+  mat1 <- as.matrix(
+    tibble::tribble(
+      ~cycle, ~from, ~to, ~value,
+           1,     1,   2,   1.00000001,
+           1,     1,   3,   0.15,
+           1,     1,   1,    -pi,
+           1,     2,   2,    -pi,
+           1,     2,   3,   0.15,
+           1,     3,   3,    -pi,
+           2,     1,   1,    -pi,
+           2,     1,   2,   0.20,
+           2,     1,   3,   0.10,
+           2,     2,   2,    -pi,
+           2,     2,   3,   0.1,
+           2,     3,   3,    -pi,
+           3,     1,   1,    -pi,
+           3,     1,   2,   -0.0000001,
+           3,     1,   3,   0.10,
+           3,     2,   2,    -pi,
+           3,     2,   3,   0.1,
+           3,     3,   3,    -pi,
+    )
+  )
+  init1 <- c(0.8, 0.2, 0)
+  nstate1 <- 3
+  ncycle1 <- 3
+  statenames1 <- c('a', 'b', 'c')
+  mat1_c1 <- matrix(c(
+    0.6, 0.25, 0.15,
+    0, 0.85, 0.15,
+    0, 0, 1
+  ), nrow = 3, ncol = 3, byrow = TRUE)
+  mat1_c23 <- matrix(c(
+    0.7, 0.2, 0.1,
+    0, 0.9, 0.1,
+    0, 0, 1
+  ), nrow = 3, ncol = 3, byrow = TRUE)
+  expected_trace <- matrix(nrow = 4, ncol = 3)
+  colnames(expected_trace) <- statenames1
+  rownames(expected_trace) <- c(0:3)
+  expected_trace[1, ] <- init1
+  expected_trace[2, ] <- expected_trace[1, ] %*% mat1_c1
+  expected_trace[3, ] <- expected_trace[2, ] %*% mat1_c23
+  expected_trace[4, ] <- expected_trace[3, ] %*% mat1_c23
+
+  res <- heRomod2:::cppMarkovTransitionsAndTrace(
+    mat1,
+    init1,
+    statenames1,
+    3,
+    3,
+    -pi
+  )
+
+  error_states_cycles <- as.data.frame(res$errors) %>%
+    mutate(cycle = res$transitions[,1], from = res$transitions[,2]) %>%
+    group_by(cycle, from) %>%
+    summarize(outsideBounds = any(outsideBounds)) %>%
+    filter(outsideBounds) %>%
+    ungroup()
+
+  expect_equal(
+    error_states_cycles,
+    tibble(cycle = c(1, 3), from = c(1, 1), outsideBounds = c(TRUE, TRUE))
+  )
+
+})
+
+test_that('markov trace calculations work with sum error', {
+  mat1 <- as.matrix(
+    tibble::tribble(
+      ~cycle, ~from, ~to, ~value,
+           1,     1,   2,   0.25,
+           1,     1,   3,   0.15,
+           1,     1,   1,    -pi,
+           1,     2,   2,    -pi,
+           1,     2,   3,   0.15,
+           1,     3,   3,    -pi,
+           2,     1,   1,    -pi,
+           2,     1,   2,   0.20,
+           2,     1,   3,   0.10,
+           2,     2,   2,   0.900001,
+           2,     2,   3,   0.1,
+           2,     3,   3,    -pi,
+           3,     1,   1,   0.69,
+           3,     1,   2,   0.20,
+           3,     1,   3,   0.10,
+           3,     2,   2,    -pi,
+           3,     2,   3,   0.1,
+           3,     3,   3,    -pi,
+    )
+  )
+  init1 <- c(0.8, 0.2, 0)
+  nstate1 <- 3
+  ncycle1 <- 3
+  statenames1 <- c('a', 'b', 'c')
+  mat1_c1 <- matrix(c(
+    0.6, 0.25, 0.15,
+    0, 0.85, 0.15,
+    0, 0, 1
+  ), nrow = 3, ncol = 3, byrow = TRUE)
+  mat1_c23 <- matrix(c(
+    0.7, 0.2, 0.1,
+    0, 0.9, 0.1,
+    0, 0, 1
+  ), nrow = 3, ncol = 3, byrow = TRUE)
+  expected_trace <- matrix(nrow = 4, ncol = 3)
+  colnames(expected_trace) <- statenames1
+  rownames(expected_trace) <- c(0:3)
+  expected_trace[1, ] <- init1
+  expected_trace[2, ] <- expected_trace[1, ] %*% mat1_c1
+  expected_trace[3, ] <- expected_trace[2, ] %*% mat1_c23
+  expected_trace[4, ] <- expected_trace[3, ] %*% mat1_c23
+
+  res <- heRomod2:::cppMarkovTransitionsAndTrace(
+    mat1,
+    init1,
+    statenames1,
+    3,
+    3,
+    -pi
+  )
+
+  error_states_cycles <- as.data.frame(res$errors) %>%
+    mutate(cycle = res$transitions[,1], from = res$transitions[,2]) %>%
+    group_by(cycle, from) %>%
+    summarize(sumNotEqualOne = any(sumNotEqualOne)) %>%
+    filter(sumNotEqualOne) %>%
+    ungroup()
+
+  expect_equal(
+    error_states_cycles,
+    tibble(cycle = c(2, 3), from = c(2, 1), sumNotEqualOne = c(TRUE, TRUE))
+  )
+
+})
+
+test_that('markov trace calculations work with NA/NaN error', {
+  mat1 <- as.matrix(
+    tibble::tribble(
+      ~cycle, ~from, ~to, ~value,
+           1,     1,   2,   NA,
+           1,     1,   3,   0.15,
+           1,     1,   1,    -pi,
+           1,     2,   2,    -pi,
+           1,     2,   3,   0.15,
+           1,     3,   3,    -pi,
+           2,     1,   1,    -pi,
+           2,     1,   2,   0.20,
+           2,     1,   3,   0.10,
+           2,     2,   2,   NA,
+           2,     2,   3,   0.1,
+           2,     3,   3,    -pi,
+           3,     1,   1,   NaN,
+           3,     1,   2,   0.20,
+           3,     1,   3,   0.10,
+           3,     2,   2,    -pi,
+           3,     2,   3,   0.1,
+           3,     3,   3,    -pi,
+    )
+  )
+  init1 <- c(0.8, 0.2, 0)
+  nstate1 <- 3
+  ncycle1 <- 3
+  statenames1 <- c('a', 'b', 'c')
+  mat1_c1 <- matrix(c(
+    0.6, 0.25, 0.15,
+    0, 0.85, 0.15,
+    0, 0, 1
+  ), nrow = 3, ncol = 3, byrow = TRUE)
+  mat1_c23 <- matrix(c(
+    0.7, 0.2, 0.1,
+    0, 0.9, 0.1,
+    0, 0, 1
+  ), nrow = 3, ncol = 3, byrow = TRUE)
+  expected_trace <- matrix(nrow = 4, ncol = 3)
+  colnames(expected_trace) <- statenames1
+  rownames(expected_trace) <- c(0:3)
+  expected_trace[1, ] <- init1
+  expected_trace[2, ] <- expected_trace[1, ] %*% mat1_c1
+  expected_trace[3, ] <- expected_trace[2, ] %*% mat1_c23
+  expected_trace[4, ] <- expected_trace[3, ] %*% mat1_c23
+
+  res <- heRomod2:::cppMarkovTransitionsAndTrace(
+    mat1,
+    init1,
+    statenames1,
+    3,
+    3,
+    -pi
+  )
+
+  error_states_cycles <- as.data.frame(res$errors) %>%
+    mutate(cycle = res$transitions[,1], from = res$transitions[,2]) %>%
+    group_by(cycle, from) %>%
+    summarize(NaOrNaN = any(NaOrNaN)) %>%
+    filter(NaOrNaN) %>%
+    ungroup()
+
+  expect_equal(
+    error_states_cycles,
+    tibble(cycle = c(1, 2, 3), from = c(1, 2, 1), NaOrNaN = c(TRUE, TRUE, TRUE))
+  )
 
 })
 

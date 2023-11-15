@@ -236,7 +236,6 @@ List cppMarkovTransitionsAndTrace(
                     // Populate row for error tracking of transition probabilities.
                     transitionErrors(currentTransitionsRow, 0) = complementsFoundInState > 1;
                     transitionErrors(currentTransitionsRow, 1) = (value > 1) || (value < 0);
-                    transitionErrors(currentTransitionsRow, 2) = cumulativeProbability > 1;
                     transitionErrors(currentTransitionsRow, 3) = std::isnan(value);
                 }
 
@@ -275,8 +274,11 @@ List cppMarkovTransitionsAndTrace(
                 uncondTransProbs(complementRowIndex, 3) = uncondTransProb;
 
                 transitionErrors(complementRowIndex, 1) = (complementValue > 1) || (complementValue < 0);
-                transitionErrors(complementRowIndex, 2) = cumulativeProbability > 1;
                 transitionErrors(complementRowIndex, 3) = std::isnan(complementValue);
+            } else {
+                // Rcout << "Cumulative prob no complement: " << cumulativeProbability << "\n";
+                // Rcout << "Cumulative prob equals 1: " << (cumulativeProbability == 1) << "\n";
+                transitionErrors(currentTransitionsRow - 1, 2) = cumulativeProbability != 1;
             }
 
             // Reset everything for move to next set of transitions
