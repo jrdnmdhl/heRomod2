@@ -31,7 +31,7 @@ evaluate_values <- function(df, ns, value_names, state_names, simplify = F) {
 
   names_in_order <- unique(df$name)
   evaluated_values <- df %>%
-    group_by(state) %>%
+    group_by(state, destination) %>%
     group_split() %>%
     map(function(x) {
       state_ns <- eval_variables(x, clone_namespace(ns), F)
@@ -43,7 +43,7 @@ evaluate_values <- function(df, ns, value_names, state_names, simplify = F) {
 
       if (simplify && length(value_names_in_df) > 0) {
         # Transform to matrix to check state-time-dependency
-        state_res <- state_res[ ,c("state", "cycle", "state_cycle", value_names_in_df)]
+        state_res <- state_res[ ,c("state", "destination", "cycle", "state_cycle", value_names_in_df)]
         
         val_mat <- state_res %>%
           pivot_longer(names_to = "variable", values_to = "value", all_of(value_names_in_df)) %>%
@@ -60,11 +60,12 @@ evaluate_values <- function(df, ns, value_names, state_names, simplify = F) {
             as.list(state_cycle_df[ ,value_names_in_df]),
             as.list(state_ns$env)[value_names_in_env]
           )
-          expanded_state_values_list[value_names_missing] <- 0
-          expanded_state_values_list <- expanded_state_values_list[value_names]
+          #expanded_state_values_list[value_names_missing] <- 0
+          #expanded_state_values_list <- expanded_state_values_list[value_names]
           x$values_list <- list(expanded_state_values_list)
           x$state_cycle <- state_cycle_df$state_cycle[1]
-          x[1, c('state', 'max_st', 'state_cycle', 'values_list')]
+          browser()
+          x[1, c('state', 'destination', 'max_st', 'state_cycle', 'values_list')]
         }) %>%
         bind_rows()
       expanded_state_res

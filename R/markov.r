@@ -54,7 +54,8 @@ run_segment.markov <- function(segment, model, env, ...) {
   calculated_trace_and_values <- calculate_trace_and_values(
     eval_states,
     eval_trans,
-    eval_values
+    eval_values,
+    value_names
   ) #11ms
   
   # Create the object to return that will summarize the results of
@@ -66,7 +67,9 @@ run_segment.markov <- function(segment, model, env, ...) {
   segment
 }
 
-calculate_trace_and_values <- function(init, transitions, values) {
+calculate_trace_and_values <- function(init, transitions, values, value_names) {
+
+  state_names <- colnames(init)
 
   # Determine number of cycles
   n_cycles <- max(transitions$cycle)
@@ -92,20 +95,23 @@ calculate_trace_and_values <- function(init, transitions, values) {
     mutate(state = expand_state_name(state, state_cycle))
 
   # Create a list containing values list for each state
-  values_list_of_lists <- vector(mode = 'list', length(expand_init))
-  names(values_list_of_lists) <- colnames(expand_init)
-  values_list_of_lists[eval_values_limited$state] <- eval_values_limited$values_list
+  # values_list_of_lists <- vector(mode = 'list', length(expand_init))
+  # names(values_list_of_lists) <- state_names
+  # values_list_of_lists[eval_values_limited$state] <- eval_values_limited$values_list
+
+  transitional_values <- filter(eval_values_limited, !is.na(state), !is.na(destination))
 
   # Rename states according to expanded state names using existing function but modifying it to take into account max_st
   # Have values sorted properly and make sure all are represented in each list, and list is ordered by states, and correct names are applied
-  # 
-
+  print(transitional_values)
+  
   traceAndTransitions <- cppMarkovTransitionsAndTrace(
     trans_lf_mat,
+    transitional_values,
     as.numeric(expand_init),
-    colnames(expand_init),
+    state_names,
+    value_names,
     as.integer(n_cycles),
-    as.integer(length(expand_init)),
     -pi
   )
 

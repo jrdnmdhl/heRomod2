@@ -125,23 +125,53 @@ List MarkovTraceAndValues(NumericMatrix transitions, List values, NumericVector 
 }
 
 /*
-cppMarkovTransitionsAndTrace
 
-Fills out the complementary probabilities in transition matrix and
-calculates the trace and unconditional transition probabilities. Any
-errors identified in transition matrix are skipped over but reported
-in results.
 
 */
 // [[Rcpp::export]]
 List cppMarkovTransitionsAndTrace(
     NumericMatrix transitions,
+    DataFrame valuesTransitional,
     NumericVector initialProbs,
     CharacterVector stateNames,
+    CharacterVector valueNames,
     int nCycles,
-    int nStates,
     double complementConstant
 ) {
+
+    int nValues = valueNames.length();
+    int nStates = stateNames.length();
+
+    // // Create a state name dictionary
+    // std::map<String,double> stateDictionary;
+    // for (int i = 0; i < nStates; i++) {
+    //     stateDictionary[stateNames[i]] = i;
+    // }
+
+    // Create a dictionary of transitional values
+    std::map<String,NumericVector> transitionalValueDictionary;
+    int transitionalValueRows = valuesTransitional.nrow();
+    Rcpp::CharacterVector valNames;
+    Rcpp::List valCol;
+    Rcpp::CharacterVector stateCol;
+    Rcpp::CharacterVector destCol;
+    Rcpp::List valList;
+    for (int i = 0; i < transitionalValueRows; i++) {
+        stateCol = valuesTransitional[0];
+        destCol = valuesTransitional[1];
+        valCol = valuesTransitional[3];
+        valList = valCol[i];
+        valNames = valList.names();
+        int nVals = valList.length();
+        for (int j = 0; j < nVals; j++) {
+            std::string valueName = std::string(valNames[j]);
+            std::string fromState = std::string(stateCol[j]);
+            std::string destState = std::string(destCol[j]);
+            std::string mapKey = fromState + "+" + destState + "+" + valueName;
+            //Rcout << (mapKey + ": ") << double (valList[j]) << "\n";
+            transitionalValueDictionary[mapKey] = valList[j];
+        }
+    }
 
     // Set up a few R functions to call
     Environment base = Environment::namespace_env("base");
@@ -268,10 +298,13 @@ List cppMarkovTransitionsAndTrace(
                 trace(cycle, complementToState) += uncondTransProb;
                 DebugPrintValue("    TRACE SET TO", trace(cycle, complementToState));
 
+                // Set unconditional transition probabilities
                 uncondTransProbs(complementRowIndex, 0) = cycle;
                 uncondTransProbs(complementRowIndex, 1) = fromState;
                 uncondTransProbs(complementRowIndex, 2) = complementToState;
                 uncondTransProbs(complementRowIndex, 3) = uncondTransProb;
+
+                // Set transitional values
 
                 transitionErrors(complementRowIndex, 1) = (complementValue > 1) || (complementValue < 0);
                 transitionErrors(complementRowIndex, 3) = std::isnan(complementValue);
@@ -285,6 +318,12 @@ List cppMarkovTransitionsAndTrace(
             complementsFoundInState = 0;
             cumulativeProbability = 0;
         }
+
+        //String stateName = stateNames[fromState]
+
+        // Keep an array of uncond trans prods and trace for each cycle
+        // then here calculate transitional and residence values for that
+        // state/cycle.
     }
 
     return List::create(
