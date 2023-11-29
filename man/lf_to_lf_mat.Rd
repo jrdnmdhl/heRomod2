@@ -4,7 +4,7 @@
 \alias{lf_to_lf_mat}
 \title{Convert Lonform Transitions Table to Matrix}
 \usage{
-lf_to_lf_mat(df)
+lf_to_lf_mat(df, state_names)
 }
 \description{
 Convert Lonform Transitions Table to Matrix

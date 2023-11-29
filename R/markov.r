@@ -51,10 +51,12 @@ run_segment.markov <- function(segment, model, env, ...) {
     as.logical(model$settings$reduce_state_cycle)
   ) #6ms
 
+  expanded <- handle_state_expansion(eval_states, eval_trans, eval_values)
+
   calculated_trace_and_values <- calculate_trace_and_values(
-    eval_states,
-    eval_trans,
-    eval_values,
+    expanded$init,
+    expanded$transitions,
+    expanded$values,
     value_names
   ) #11ms
   
@@ -67,9 +69,7 @@ run_segment.markov <- function(segment, model, env, ...) {
   segment
 }
 
-calculate_trace_and_values <- function(init, transitions, values, value_names) {
-
-  state_names <- colnames(init)
+handle_state_expansion <- function(init, transitions, values) {
 
   # Determine number of cycles
   n_cycles <- max(transitions$cycle)
@@ -79,36 +79,88 @@ calculate_trace_and_values <- function(init, transitions, values, value_names) {
 
   # Expand initial state probabilities to include tunnel states
   expand_init <- expand_init_states(init, st_maxes)
+  state_names <- colnames(expand_init)
 
   # Filter transition probabilities to only include required tunnel states
   eval_trans_limited <- select(transitions, -max_st) %>%
     left_join(st_maxes, by = c('from' = 'state')) %>%
     filter(state_cycle <= max_st)
 
+  expanded_transitions <- eval_trans_limited %>%
+    group_by(from) %>%
+    mutate(.max_st = max(state_cycle)) %>%
+    ungroup() %>%
+    mutate(
+      .end = state_cycle == .max_st,
+      .from_e = expand_state_name(from, state_cycle)
+    )
+    lv_sg_i <- (!expanded_transitions$share_state_time) | (expanded_transitions$from_state_group != expanded_transitions$to_state_group)
+    lv_i <- expanded_transitions$from != expanded_transitions$to & lv_sg_i
+    ls_i <- expanded_transitions$.end & !lv_i
+    nx_i <- !(lv_i | ls_i)
+    expanded_transitions$.to_e <- NA
+    expanded_transitions$.to_e[lv_i] <- expand_state_name(expanded_transitions$to[lv_i], 1)
+    expanded_transitions$.to_e[ls_i] <- expand_state_name(expanded_transitions$to[ls_i], expanded_transitions$.max_st[ls_i])
+    expanded_transitions$.to_e[nx_i] <- expand_state_name(expanded_transitions$to[nx_i], expanded_transitions$state_cycle[nx_i] + 1)
+
   # Generate data structure of transition probabilities to pass to rcpp function
-  trans_lf_mat <- lf_to_lf_mat(eval_trans_limited)
+  expanded_trans_matrix <- lf_to_lf_mat(expanded_transitions, state_names)
+
+  expand_trans_first_cycle <- select(
+    filter(expanded_transitions, cycle == 1),
+    from, to, .to_e, state_cycle
+  )
 
   # Filter values to only include required tunnel states
-  eval_values_limited <- select(values, -max_st) %>%
+  values_expanded <- select(values, -max_st) %>%
     left_join(st_maxes, by = c('state' = 'state')) %>%
-    filter(!is.na(state), state_cycle <= max_st) %>%
-    mutate(state = expand_state_name(state, state_cycle))
+    filter(
+      state_cycle <= max_st,
+      !(is.na(state) & is.na(destination) & state_cycle > 1)
+    ) %>%
+    mutate(
+      .state_e = expand_state_name(state, state_cycle)
+    ) %>%
+    left_join(
+      expand_trans_first_cycle,
+      by = c(
+        "state" = "from",
+        "destination" = "to", 
+        "state_cycle" = "state_cycle"
+      )
+    ) %>%
+    transmute(
+      state = .state_e,
+      destination = .to_e,
+      max_st,
+      values_list
+    )
 
-  # Create a list containing values list for each state
-  # values_list_of_lists <- vector(mode = 'list', length(expand_init))
-  # names(values_list_of_lists) <- state_names
-  # values_list_of_lists[eval_values_limited$state] <- eval_values_limited$values_list
+  list(
+    init = expand_init,
+    transitions = expanded_trans_matrix,
+    values = values_expanded
+  )
 
-  transitional_values <- filter(eval_values_limited, !is.na(state), !is.na(destination))
+}
 
+calculate_trace_and_values <- function(init, transitions, values, value_names) {
+
+  # Determine number of cycles
+  n_cycles <- max(transitions[,1])
+
+  transitional_values <- filter(values, !is.na(state), !is.na(destination))
+
+  state_names <- colnames(init)
+
+
+  browser()
   # Rename states according to expanded state names using existing function but modifying it to take into account max_st
   # Have values sorted properly and make sure all are represented in each list, and list is ordered by states, and correct names are applied
-  print(transitional_values)
-  
-  traceAndTransitions <- cppMarkovTransitionsAndTrace(
-    trans_lf_mat,
+  trace_transitions_values <- cppMarkovTransitionsAndTrace(
+    transitions,
     transitional_values,
-    as.numeric(expand_init),
+    as.numeric(init),
     state_names,
     value_names,
     as.integer(n_cycles),
@@ -126,7 +178,7 @@ calculate_trace_and_values <- function(init, transitions, values, value_names) {
   #   -pi
   # )
 
-  traceAndTransitions
+  trace_transitions_values
 
 }
 
@@ -305,32 +357,13 @@ eval_trans_markov_lf <- function(df, ns, state_time_use, simplify = FALSE) {
 }
 
 #' Convert Lonform Transitions Table to Matrix
-lf_to_lf_mat <- function(df) {
-  df <- df %>%
-    group_by(from) %>%
-    mutate(.max_st = max(state_cycle)) %>%
-    ungroup() %>%
-    mutate(
-      .end = state_cycle == .max_st,
-      .from_e = expand_state_name(from, state_cycle)
-    )
-  lv_sg_i <- (!df$share_state_time) | (df$from_state_group != df$to_state_group)
-  lv_i <- df$from != df$to & lv_sg_i
-  ls_i <- df$.end & !lv_i
-  nx_i <- !(lv_i | ls_i)
-  df$.to_e <- NA
-  df$.to_e[lv_i] <- expand_state_name(df$to[lv_i], 1)
-  df$.to_e[ls_i] <- expand_state_name(df$to[ls_i], df$.max_st[ls_i])
-  df$.to_e[nx_i] <- expand_state_name(df$to[nx_i], df$state_cycle[nx_i] + 1)
-  e_state_names <- unique(df$.from_e)
-  df$to <- factor(df$.to_e, levels = e_state_names)
-  df$from <- factor(df$.from_e, levels  = e_state_names)
+lf_to_lf_mat <- function(df, state_names) {
 
   df <- arrange(
     mutate(
       df,
-      from = as.integer(factor(.from_e, levels = e_state_names)),
-      to = as.integer(factor(.to_e, levels  = e_state_names))
+      from = as.integer(factor(.from_e, levels = state_names)),
+      to = as.integer(factor(.to_e, levels  = state_names))
     ),
     cycle,
     from,

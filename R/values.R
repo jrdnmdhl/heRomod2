@@ -43,7 +43,7 @@ evaluate_values <- function(df, ns, value_names, state_names, simplify = F) {
 
       if (simplify && length(value_names_in_df) > 0) {
         # Transform to matrix to check state-time-dependency
-        state_res <- state_res[ ,c("state", "destination", "cycle", "state_cycle", value_names_in_df)]
+        state_res <- state_res[ ,c("state", "cycle", "state_cycle", value_names_in_df)]
         
         val_mat <- state_res %>%
           pivot_longer(names_to = "variable", values_to = "value", all_of(value_names_in_df)) %>%
@@ -64,7 +64,6 @@ evaluate_values <- function(df, ns, value_names, state_names, simplify = F) {
           #expanded_state_values_list <- expanded_state_values_list[value_names]
           x$values_list <- list(expanded_state_values_list)
           x$state_cycle <- state_cycle_df$state_cycle[1]
-          browser()
           x[1, c('state', 'destination', 'max_st', 'state_cycle', 'values_list')]
         }) %>%
         bind_rows()

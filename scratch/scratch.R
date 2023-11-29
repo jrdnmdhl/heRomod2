@@ -12,8 +12,15 @@ model_name <- "checkimab_simple"
 
 
 
-## TODO
 
+#' TODO
+#' - Enforce naming restrictions
+#' - Unified state expansion across values, trans, init
+#' - Implement values calcualtions in rcpp
+
+#' FEATURE LIST
+#' 
+#' 
 #' MARKOV TRANSITIONS
 #' - State-time limiting
 #' - Shared state time
