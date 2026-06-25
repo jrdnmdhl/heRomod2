@@ -1,0 +1,111 @@
+url: https://PolicyAnalysisInc.github.io/openqaly/
+
+template:
+  bootstrap: 5
+  light-switch: true
+
+development:
+  mode: auto
+
+home:
+  title: openqaly • Reproducible Health Economic Modeling
+  description: >
+    Build and run reproducible cost-effectiveness models (PSM, Markov,
+    decision tree, microsim) with PSA, DSA, scenario, threshold, TWSA,
+    and VBP analyses.
+
+navbar:
+  structure:
+    left:  [intro, articles, reference, news]
+    right: [search, github, lightswitch]
+
+articles:
+- title: Tutorials
+  navbar: ~
+  contents: [custom_psm, decision_trees]
+- title: Base case results
+  contents: [base_case_outcomes, base_case_costs, base_case_results_trace,
+             base_case_results_ce, base_case_results_nmb]
+- title: Probabilistic sensitivity analysis
+  contents: [psa_setup, psa_results]
+- title: Deterministic sensitivity analysis
+  contents: [dsa_results, dsa_ce_edge_cases]
+- title: Scenario, threshold, VBP, TWSA
+  contents: [scenario_results, threshold_results, vbp_results, twsa_results]
+- title: Diagnostics
+  contents: [diagnostic_plots]
+
+reference:
+- title: Model construction
+  desc: Define a model and its strategies, states, transitions, variables, summaries.
+  contents:
+  - starts_with("add_state")
+  - starts_with("add_transition")
+  - starts_with("add_strategy")
+  - starts_with("add_summary")
+  - starts_with("add_variable")
+  - starts_with("add_group")
+  - starts_with("add_tree_")
+- title: Probability distributions
+  contents:
+  - matches("^(beta|gamma|lognormal|normal|uniform|dirichlet|mvnormal|triangular|multinomial)$")
+- title: Running models
+  contents: [run_model, run_dsa, run_psa, run_scenario, run_threshold, run_twsa, run_vbp]
+- title: Analysis configuration
+  contents:
+  - starts_with("add_dsa_")
+  - starts_with("add_twsa_")
+  - starts_with("add_scenario")
+  - starts_with("add_threshold")
+  - starts_with("add_multivariate")
+  - starts_with("set_psa")
+  - starts_with("set_vbp")
+- title: Overrides
+  contents:
+  - starts_with("add_override")
+  - starts_with("set_override_")
+- title: Trace results
+  contents:
+  - starts_with("trace_")
+  - get_trace
+  - export_trace
+- title: Outcome results
+  contents:
+  - starts_with("outcomes_")
+- title: Cost results
+  contents:
+  - starts_with("costs_")
+- title: Cost-effectiveness, NMB, CEAC, EVPI
+  contents:
+  - starts_with("nmb_")
+  - starts_with("incremental_ce")
+  - starts_with("pairwise_ce")
+  - starts_with("ceac_")
+  - starts_with("evpi_")
+  - icer
+- title: Sensitivity analysis results
+  contents:
+  - starts_with("dsa_")
+  - starts_with("psa_")
+  - starts_with("twsa_")
+  - starts_with("scenario_")
+  - starts_with("threshold_")
+  - starts_with("vbp_")
+- title: I/O and serialization
+  contents:
+  - read_model
+  - write_model
+  - matches("^(read|write)_model_(json|yaml)$")
+  - starts_with("export")
+  - matches("lockfile")
+- title: Utilities
+  contents:
+  - starts_with("get_")
+  - starts_with("validate_")
+- title: Other functions
+  contents:
+  - matches(".")
+
+authors:
+  Jordan Amdahl:
+    href: https://github.com/PolicyAnalysisInc

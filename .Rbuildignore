@@ -1,6 +1,9 @@
 ^codecov\.yml$
 ^\.
 ^\.article$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
 ^scratch notes$
 ^LICENSE$
 ^openqaly\.Rproj$

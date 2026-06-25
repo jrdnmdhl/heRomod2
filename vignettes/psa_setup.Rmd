@@ -184,7 +184,7 @@ model |>
 
 For categorical outcomes where exactly one category is selected per simulation (one-hot encoded). Probabilities are taken from the variables' base case values.
 
-```{r multinomial}
+```{r multinomial, eval = FALSE}
 model <- model |>
   add_variable("start_early", 0.6) |>
   add_variable("start_mid", 0.3) |>
@@ -192,8 +192,7 @@ model <- model |>
   add_multivariate_sampling(
     name = "disease_stage_at_entry",
     type = "multinomial",
-    variables = c("start_early", "start_mid", "start_late"),
-    size = 1
+    variables = c("start_early", "start_mid", "start_late")
   )
 ```
 
@@ -298,7 +297,7 @@ psa_parameter_scatter_matrix(
 
 Multinomial sampling produces discrete one-hot outcomes (0 or 1). Use `psa_parameter_pair_plot()` instead of the scatter matrix — it automatically detects discrete variables and uses bar charts and dot plots.
 
-```{r pair_multinomial, fig.width=9, fig.height=9}
+```{r pair_multinomial, fig.width=9, fig.height=9, eval = FALSE}
 psa_parameter_pair_plot(
   psa_results,
   variables = c("start_early", "start_mid", "start_late"),

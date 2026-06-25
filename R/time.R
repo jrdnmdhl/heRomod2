@@ -178,9 +178,15 @@ cycle_length_variables <- function(settings) {
 }
 
 # Generate time unit variables
+#
+# Returns a list (not a data frame) so that these constants are assigned to the
+# namespace environment as scalars, mirroring cycle_length_variables(). If they
+# were returned as a 1-row data frame they would be cbind-ed into the per-cycle
+# namespace data frame and become vectors of length n_cycles, which silently
+# breaks formulas that combine them with fixed-length tables (R recycling).
 time_unit_variables <- function(settings) {
   days_per_year <- get_days_per_year(settings)
-  tibble(
+  list(
     days_per_year = days_per_year,
     days_per_month = days_per_year / 12
   )

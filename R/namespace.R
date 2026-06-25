@@ -57,6 +57,14 @@ define_namespace <- function(env, df, additional = NULL, ...) {
     additional <- NULL
   }
 
+  # Ensure the namespace data frame is always a base data.frame, regardless of
+  # how many frames were merged. A single merged frame would otherwise keep its
+  # tibble class, and tibble's strict `[` breaks data.frame-style subsetting that
+  # downstream code (e.g. eval_states complement handling) relies on.
+  if (is.data.frame(df)) {
+    df <- as.data.frame(df, stringsAsFactors = FALSE, check.names = FALSE)
+  }
+
   ns <- list(df = df, env = env_clone(env))
   if (!is.null(additional)) {
     for (nm in names(additional)) {

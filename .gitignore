@@ -6,3 +6,4 @@ launch.json
 inst/doc
 *.tar.gz
 scratch/
+docs/

@@ -10,6 +10,38 @@ coverage](https://codecov.io/gh/policyanalysisinc/openqaly/branch/master/graph/b
 
 A package for creating and running cost-effectiveness models.
 
+## Installation
+
+``` r
+# install.packages("pak")
+pak::pak("PolicyAnalysisInc/openqaly")
+```
+
+## Quick example
+
+``` r
+library(openqaly)
+
+model <- define_model() |>
+  add_strategy("treatment") |>
+  add_state("healthy") |>
+  add_state("dead") |>
+  add_transition("healthy", "dead", 0.05) |>
+  add_summary("cost", "healthy", 1000) |>
+  add_summary("outcome", "healthy", 1)
+
+results <- run_model(model)
+```
+
+## Learn more
+
+-   [Articles](articles/index.html) — tutorials, analysis guides,
+    diagnostics
+-   [Function reference](reference/index.html) — full API by topic
+-   [Custom PSM tutorial](articles/custom_psm.html)
+-   [Setting up PSA](articles/psa_setup.html)
+-   [Decision trees](articles/decision_trees.html)
+
 ## Planned Features
 
 -   Supports PSM, Markov, Microsimulation, DES, Custom

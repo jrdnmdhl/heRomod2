@@ -41,6 +41,9 @@ Depends:
     R (>= 4.1.0),
     openqalysurv
 License: GPL-3
+URL: https://PolicyAnalysisInc.github.io/openqaly/, https://github.com/PolicyAnalysisInc/openqaly
+BugReports: https://github.com/PolicyAnalysisInc/openqaly/issues
+Config/Needs/website: pkgdown
 Encoding: UTF-8
 LazyData: true
 Suggests:
